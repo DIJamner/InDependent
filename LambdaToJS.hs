@@ -1,4 +1,5 @@
 import TypedLambda
+import TypedLambdaParser
 import qualified JSWriter as JS
 import qualified Errors as E
 import Text.Parsec.String (Parser)
@@ -7,7 +8,7 @@ import System.Environment
 import Data.Either
 import Data.Map (Map)
 import qualified Data.Map as Map
---TODO: Document
+--TODO: Document, organize properly
 type DustyLang = [DStatement]
 
 data DStatement 
@@ -21,7 +22,7 @@ primTypes = ["Int"]
 
 --parses a block of DustyLang code
 dustyParser :: Parser DustyLang
-dustyParser = many1 $ do--TODO: add comments
+dustyParser = many1 $ do
         a <- comment <|> declNative <|> assignment <|> expStatement
         ((skipMany1 $ char '\n') <|> eof)
         return $ a
@@ -48,7 +49,7 @@ expStatement = do
         e <- lambdaExp primTypes
         return $ DExp e
 
---creates an assignment parser from an a parser
+--creates an assignment parser from a parser
 assignment :: Parser DStatement
 assignment = do
         name <- varIdentifier
@@ -72,7 +73,6 @@ mapInEnvironment f (a:as) b =  c:(mapInEnvironment f as newB) where (newB, c) = 
 
 processStmnt :: DStatement -> Environment -> (Environment, Either E.Error JS.Statement)
 processStmnt (DAssign n v) e = case getType v e of
---TODO: func. args. currently pass out of their scope in the type checker
         Left err -> (e, Left err)
         Right t -> ((n, t):e, Right $ JS.NewVar n $ genExp v)
 processStmnt (DExp expr) e = case getType expr e of

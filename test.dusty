@@ -1,6 +1,6 @@
-native add : Int ->Int->Int
+native add : Int->Int->Int
 a = \x:Int->Int.x
 b = \y:Int->Int->Int.\z:Int.((a (y  z)) z)
 c = (b add)
 {-This is a comment -}
-\q:Int.(c q)
+\q:Int.(x\c q)
