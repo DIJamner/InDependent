@@ -40,16 +40,6 @@ inferType re ie e = case e of --TODO: inferType is the only function that uses i
         Apply a@(Lambda t ee) b -> (inferPi re ie b) ??>> (inferType re ie a) 
         Apply a _ -> Left $ E.TypeError $ show a ++ " is not a function."
 
-resolveDeBruijn :: IndexEnv -> Int -> Either E.Error Expr
-resolveDeBruijn ie i = if length ie >= i then case ie !! (i-1) of --de Bruijn indices are 1 indexed
-                Nothing -> Right $ Var $ DeBruijn i
-                Just v -> Right $ v 
-        else Left $ E.FreeVarError $ "Unresolved DeBruijn index " ++ (show i) ++ "."
-
-resolveRef :: RefEnv -> String -> Either E.Error Expr
-resolveRef [] s = Left $ E.FreeVarError $ "Type of " ++ s ++ " unknown."
-resolveRef ((v, t, e):re) s = if s == v then Right e else Right ??>> (resolveRef re s)
-
 --attempts to determine the type of a lmabda term
 inferPi :: RefEnv -> IndexEnv -> Expr -> Expr -> Either E.Error Expr
 inferPi re ie b e = inferPi' ??>> (normalize re ie e)
@@ -61,7 +51,7 @@ inferPi re ie b e = inferPi' ??>> (normalize re ie e)
                                         btype :: Either E.Error Expr
                                         btype = inferType re ie b
                                         checkPi :: Expr -> Either E.Error Expr
-                                        checkPi bt = if tt `exprEq` bt then Right $ deBruijnSub 1 tt ee
+                                        checkPi bt = if exprEq re ie tt bt then Right $ deBruijnSub 1 tt ee
                                         else Left $ E.TypeError $ show b ++ " not of type " ++ show tt
                         _ -> Left $ E.CompilationError "Something strange happened."
         
@@ -84,7 +74,7 @@ normalize re ie (Apply a@(Lambda t e) b) = normalize' ??>> btype
                 btype :: Either E.Error Expr
                 btype = inferType re ie b
                 normalize' :: Expr -> Either E.Error Expr
-                normalize' bt  = if bt `exprEq` t then Right $ deBruijnSub 1 b e
+                normalize' bt  = if exprEq re ie bt t then Right $ deBruijnSub 1 b e
                         else Left $ E.TypeError $ "expected " ++ show t ++ ", actual " ++ show btype ++ " in " ++
                                 show a ++ " applied to " ++ show b
 normalize re ie (Apply a b) = Apply ^??>> (normalize re ie a) <??> (normalize re ie b)
@@ -109,10 +99,26 @@ refSub s e (Pi t e2) = Pi (refSub s e t) (refSub s e e2)
 refSub s e (Lambda t e2) = Lambda (refSub s e t) (refSub s e e2)
 refSub s e (Apply a b) = Apply (refSub s e a) (refSub s e b)
 
+resolveDeBruijn :: IndexEnv -> Int -> Either E.Error Expr
+resolveDeBruijn ie i = if length ie >= i then case ie !! (i-1) of --de Bruijn indices are 1 indexed
+                Nothing -> Right $ Var $ DeBruijn i
+                Just v -> Right $ v 
+        else Left $ E.FreeVarError $ "Unresolved DeBruijn index " ++ (show i) ++ "."
+
+resolveRef :: RefEnv -> String -> Either E.Error Expr
+resolveRef [] s = Left $ E.FreeVarError $ "Type of " ++ s ++ " unknown."
+resolveRef ((v, t, e):re) s = if s == v then Right e else Right ??>> (resolveRef re s)
 
 --tests if two expressions are equal
-exprEq :: Expr -> Expr -> Bool
-exprEq (Var a) (Var b) = a == b
-exprEq a b = True --TODO
-
+exprEq :: RefEnv -> IndexEnv -> Expr -> Expr -> Bool --TODO: should eat errors or no?
+exprEq re ie a b = let
+                nExprEq :: Expr -> Expr -> Bool --assumes both terms have been normalized
+                nExprEq (Var a) (Var b) = a == b 
+                nExprEq (Apply a1 b1) (Apply a2 b2) = nExprEq a1 a2 && nExprEq b1 b2
+                nExprEq (Lambda t1 e1) (Lambda t2 e2) = nExprEq t1 t2 && nExprEq e1 e2
+                nExprEq (Universe i1) (Universe i2) = i1 == i2
+                nExprEq (Pi t1 e1) (Pi t2 e2) = nExprEq t1 t2 && nExprEq e1 e2
+        in case nExprEq ^??>> (normalize re ie a) <??> (normalize re ie b) of
+                Left _ -> False
+                Right res -> res
 
