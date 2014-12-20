@@ -8,11 +8,25 @@ data Error
         = TypeError String
         | ParsecError ParseError
         | CompilationError String
+        | FreeVarError String
+        | BindingError String
         deriving (Show)
         
---This function converts an error into a string message for adding to another error's message
---TODO: should errors be nestable, removing the need for this?
-message :: Error -> String
-message (TypeError s) = "TypeError: " ++ s
-message (ParsecError p) = show p
-message (CompilationError s) = "CompilationError: " ++ s
+--lifts straight functions into error output functions
+(^??) :: (b -> c) -> b -> Either a c
+f ^?? e = Right $ f e
+
+--lifts straight functions into error io functions, shorthand for ^?? and ??>> together
+infixr 9 ^??>>
+(^??>>) :: (b -> c) -> Either a b -> Either a c
+f ^??>> e = (f ^??) ??>> e
+
+--combinator for higher order error out functions
+infixr 8 <??>
+(<??>) :: (Either a (b -> c)) -> Either a b -> Either a c
+f <??> e = either (\x -> Left x) (\x -> either (\y -> Left y) (\y -> Right (x y)) e) f
+
+--lifts an error out function to an error io function
+infixr 9 ??>>
+(??>>) :: (b -> Either a c) -> Either a b -> Either a c
+f ??>> e = either (\x -> Left x) (\x -> f x) e
