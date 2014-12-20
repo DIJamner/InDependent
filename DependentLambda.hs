@@ -14,11 +14,10 @@ data Variable
          = DeBruijn Int {-references bound variables from lambdas indexed by structural proximity.
                          in this program, de Bruijn indices start at 0 rather than 1 
                          to align with list indices-}
-         | DeBruijnDummy
          | Ref String --references predefined terms bound to names in the environment
-         deriving (Show)
+         deriving (Show, Eq)
     
-type IndexEnv = [Expr] --successive terms should be concatenated at the end of the list, not the beginning
+type IndexEnv = [Maybe Expr] --successive terms should be concatenated at the end of the list, not the beginning
 --using negative DeBruijn indices might be more efficient as list concatenation is much slower than appending
 
 type RefEnv = [(String, Expr, Expr)]--(v:t = e)
@@ -37,14 +36,14 @@ inferType re ie e = case e of --TODO: inferType is the only function that uses i
                 where
                         univMax :: Either E.Error Int
                         univMax = ((max ^??>> (inferUniverse re ie t)) <??> (inferUniverse re ie ee))
-        Lambda t ee -> Pi t ^??>> (inferType re (ie ++ [t]) ee)
+        Lambda t ee -> Pi t ^??>> (inferType re (ie ++ [Just t]) ee)
         Apply a@(Lambda t ee) b -> (inferPi re ie b) ??>> (inferType re ie a) 
         Apply a _ -> Left $ E.TypeError $ show a ++ " is not a function."
 
 resolveDeBruijn :: IndexEnv -> Int -> Either E.Error Expr
-resolveDeBruijn ie i = if length ie >= i then case ie !! (i-1) of
-                Var DeBruijnDummy -> Right $ DeBruijn i
-                _ -> Right $ ie !! (i-1) --de Bruijn indices are 1 indexed
+resolveDeBruijn ie i = if length ie >= i then case ie !! (i-1) of --de Bruijn indices are 1 indexed
+                Nothing -> Right $ Var $ DeBruijn i
+                Just v -> Right $ v 
         else Left $ E.FreeVarError $ "Unresolved DeBruijn index " ++ (show i) ++ "."
 
 resolveRef :: RefEnv -> String -> Either E.Error Expr
@@ -78,15 +77,17 @@ normalize :: RefEnv -> IndexEnv -> Expr -> Either E.Error Expr --TODO: what is t
 normalize re ie (Var (DeBruijn i)) = resolveDeBruijn ie i
 normalize re ie (Var (Ref s)) = resolveRef re s
 normalize re ie arg@(Universe i) = Right arg
-normalize re ie (Pi t e) = Right $ Pi (normalize re ie t) (normalize re (ie ++ [Var DeBruijnDummy]) e) --TODO: does this dummy val work?
-normalize re ie (Lambda t e) = Right $ Lambda ^??>> (normalize re ie t) ??>> (normalize re (ie ++ [Var DeBruijnDummy]) e) --TODO: same as above
+normalize re ie (Pi t e) = Pi ^??>> (normalize re ie t) <??> (normalize re (ie ++ [Nothing]) e) --TODO: does this dummy val work?
+normalize re ie (Lambda t e) = Lambda ^??>> (normalize re ie t) <??> (normalize re (ie ++ [Nothing]) e) --TODO: same as above
 normalize re ie (Apply a@(Lambda t e) b) = normalize' ??>> btype
         where
+                btype :: Either E.Error Expr
                 btype = inferType re ie b
                 normalize' :: Expr -> Either E.Error Expr
-                normalize' bt  = if bt `exprEq` t then Right $ deBruijnSub 1 e --TODO
+                normalize' bt  = if bt `exprEq` t then Right $ deBruijnSub 1 b e
                         else Left $ E.TypeError $ "expected " ++ show t ++ ", actual " ++ show btype ++ " in " ++
                                 show a ++ " applied to " ++ show b
+normalize re ie (Apply a b) = Apply ^??>> (normalize re ie a) <??> (normalize re ie b)
         
 
 --replaces the given index (relative to the current scope) with the expression
@@ -111,7 +112,7 @@ refSub s e (Apply a b) = Apply (refSub s e a) (refSub s e b)
 
 --tests if two expressions are equal
 exprEq :: Expr -> Expr -> Bool
+exprEq (Var a) (Var b) = a == b
 exprEq a b = True --TODO
-
 
 
