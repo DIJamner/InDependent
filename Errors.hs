@@ -11,22 +11,30 @@ data Error
         | FreeVarError String
         | BindingError String
         deriving (Show)
-        
+
+type ErrMonad = Either Error
+
+
+catch :: (Error -> a) -> ErrMonad a -> a
+catch f e = case e of
+        Left err -> f err
+        Right res -> res
+
 --lifts straight functions into error output functions
-(^??) :: (b -> c) -> b -> Either a c
-f ^?? e = Right $ f e
+(^??) :: (b -> c) -> b -> ErrMonad c
+f ^?? e = return $ f e
 
 --lifts straight functions into error io functions, shorthand for ^?? and ??>> together
 infixr 9 ^??>>
-(^??>>) :: (b -> c) -> Either a b -> Either a c
+(^??>>) :: (b -> c) -> ErrMonad b -> ErrMonad c
 f ^??>> e = (f ^??) ??>> e
 
 --combinator for higher order error out functions
 infixr 8 <??>
-(<??>) :: (Either a (b -> c)) -> Either a b -> Either a c
+(<??>) :: (ErrMonad (b -> c)) -> ErrMonad b -> ErrMonad c
 f <??> e = either (\x -> Left x) (\x -> either (\y -> Left y) (\y -> Right (x y)) e) f
 
---lifts an error out function to an error io function
+--I think that positioning the arguments in the order that they would be if there were no errors/error monad makes more sense in the context of error handling.
 infixr 9 ??>>
-(??>>) :: (b -> Either a c) -> Either a b -> Either a c
-f ??>> e = either (\x -> Left x) (\x -> f x) e
+(??>>) :: (b -> ErrMonad c) -> ErrMonad b -> ErrMonad c
+f ??>> e = e >>= f
