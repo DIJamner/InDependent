@@ -132,3 +132,19 @@ exprEq re ie a b = let
                 Left _ -> False
                 Right res -> res
 
+abstract :: (Expr -> Expr -> Expr) -> String -> Expr -> Expr -> Expr
+abstract exprKind s t e = exprKind t $ abstract' 1 s e where
+        abstract' :: Int -> String -> Expr -> Expr
+        abstract' i s arg@(Var (Ref ss)) = if s == ss then Var $ DeBruijn i else arg
+        abstract' i s (Var (DeBruijn ii)) = Var $ DeBruijn (ii + 1)
+        abstract' i s arg@(Universe ii) = arg
+        abstract' i s (Pi t e) = Pi (abstract' i s t) (abstract' (i + 1) s t)
+        abstract' i s (Lambda t e) = exprKind (abstract' i s t) (abstract' (i + 1) s t)
+        abstract' i s (Apply a b) = Apply (abstract' i s a) (abstract' i s b)
+
+
+
+
+
+
+
