@@ -2,11 +2,11 @@ module DependentLambda where
 import qualified Errors as E
 import Control.Monad
 import Control.Applicative
-
+--TODO: make sure that normalize is not called more than necessary. e.g. inferUniverse
 data Expr
         = Var Variable
         | Universe Int
-        | Pi Expr Expr --dependent product (pi _:t.e) TODO: BIG: does DeBruijn notation extend to dependent products
+        | Pi Expr Expr --dependent product (pi _:t.e) We can extend de Bruijn notation to the dependent product type, as given \a:A.b : (Pi)a:A.B, the index is valid in both. TODO: This is true iff lambda terms cannot appear in valid types
         | Lambda Expr Expr --lambda abstraction (\_:t.e)
         | Apply Expr Expr --application (a b)
         deriving (Show)
@@ -17,8 +17,8 @@ data Variable
                          to align with list indices-}
          | Ref String --references predefined terms bound to names in the environment
          deriving (Show, Eq)
-    
-type IndexEnv = [Maybe Expr] --successive terms should be concatenated at the end of the list, not the beginning
+
+type IndexEnv = [(Expr, Maybe Expr)] -- (_:t = e)successive terms should be concatenated at the end of the list, not the beginning
 --using negative DeBruijn indices might be more efficient as list concatenation is much slower than appending
 
 type RefEnv = [(String, Expr, Maybe Expr)]--(v:t = e)
@@ -26,7 +26,7 @@ type RefEnv = [(String, Expr, Maybe Expr)]--(v:t = e)
 --Attempts to calculate the type of the term in the provided environment
 inferType :: RefEnv -> IndexEnv -> Expr -> E.ErrMonad Expr--TODO: merge RefEnv, IndexEnv into tuple?
 inferType re ie e = (nInferType re ie) =<< (normalize re ie e)
-        where nInferType re ie e = case e of --TODO: inferType is the only function that uses ie. if there a way to remove it entirely?
+        where nInferType re ie e = case e of
                 Var v -> case v of
                         DeBruijn i -> (inferType re ie) =<< (resolveDeBruijn ie i)
                         Ref s -> getType re s where 
@@ -38,11 +38,11 @@ inferType re ie e = (nInferType re ie) =<< (normalize re ie e)
                         where
                                 univMax :: E.ErrMonad Int
                                 univMax = ((max `fmap` (inferUniverse re ie t)) <*> (inferUniverse re ie ee))
-                Lambda t ee -> Pi t `fmap` (inferType re (ie ++ [Just t]) ee)
+                Lambda t ee -> Pi t `fmap` (inferType re (ie ++ [(t, Nothing)]) ee)
                 Apply a@(Lambda t ee) b -> (inferPi re ie b) =<< (inferType re ie a) 
                 Apply a _ -> Left $ E.TypeError $ show a ++ " is not a function."
 
---attempts to determine the type of a lmabda term
+--attempts to determine the type of a lambda term
 inferPi :: RefEnv -> IndexEnv -> Expr -> Expr -> E.ErrMonad Expr
 inferPi re ie b e = inferPi' =<< (normalize re ie e)
         where
@@ -65,13 +65,13 @@ inferUniverse re ie e = inferUn' =<< (normalize re ie e)
                 t -> Left $ E.TypeError $ show t ++ " is not a universe."
 
 
-normalize :: RefEnv -> IndexEnv -> Expr -> E.ErrMonad Expr
+normalize :: RefEnv -> IndexEnv -> Expr -> E.ErrMonad Expr --TODO:needs a join sometime, all output is Right $ Right
 normalize re ie arg@(Var (DeBruijn i)) = return $ E.catch (\x -> arg) $ resolveDeBruijn ie i
 normalize re ie arg@(Var (Ref s)) = return $ E.catch (\x -> arg) $ resolveRef re s
 normalize re ie arg@(Universe i) = Right arg
-normalize re ie (Pi t e) = Pi `fmap` (normalize re ie t) <*> (normalize re (ie ++ [Nothing]) e) --TODO: does this dummy val work?
-normalize re ie (Lambda t e) = Lambda `fmap` (normalize re ie t) <*> (normalize re (ie ++ [Nothing]) e) --TODO: same as above
-normalize re ie (Apply a b) = join $ (nApply re ie) `fmap` (normalize re ie a) `ap` (normalize re ie b)
+normalize re ie (Pi t e) = Pi `fmap` (normalize re ie t) <*> (normalize re (ie ++ [(t,Nothing)]) e)
+normalize re ie (Lambda t e) = Lambda `fmap` (normalize re ie t) <*> (normalize re (ie ++ [(t,Nothing)]) e) 
+normalize re ie (Apply a b) = join $ (nApply re ie) `fmap` (normalize re ie a) `ap` (normalize re ie b) 
         where
                 nApply :: RefEnv -> IndexEnv -> Expr -> Expr -> E.ErrMonad Expr
                 nApply re ie a@(Lambda t e) b = normalize' =<< btype
@@ -106,10 +106,11 @@ refSub s e (Lambda t e2) = Lambda (refSub s e t) (refSub s e e2)
 refSub s e (Apply a b) = Apply (refSub s e a) (refSub s e b)
 
 resolveDeBruijn :: IndexEnv -> Int -> E.ErrMonad Expr
-resolveDeBruijn ie i = if length ie >= i then case ie !! (i-1) of --de Bruijn indices are 1 indexed
+resolveDeBruijn ie i = if length ie >= i then case e of 
                 Nothing -> Right $ Var $ DeBruijn i
                 Just v -> Right $ v 
         else Left $ E.FreeVarError $ "Unresolved DeBruijn index " ++ (show i) ++ "."
+        where (t, e) = ie !! (i-1) --de Bruijn indices are 1 indexed
 
 resolveRef :: RefEnv -> String -> E.ErrMonad Expr
 resolveRef [] s = Left $ E.FreeVarError $ "Type of " ++ s ++ " unknown."

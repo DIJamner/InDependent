@@ -1,5 +1,4 @@
 module DependentLambdaParser where
-import System.Environment
 import Control.Monad
 
 import Text.Parsec
@@ -9,11 +8,11 @@ import qualified Errors as E
 import DependentLambda
 
 expr :: Parser Expr
-expr = universe 
-        <|> lambda
-        <|> try piType
+expr = lambda
+        <|> try universe
         <|> try apply
-        <|> Var `fmap` (Ref `fmap` var)
+        <|> (Var `fmap` (Ref `fmap` var))
+        -- <|> piType
         <|> do
                 char '('
                 e <- expr
@@ -24,7 +23,7 @@ expr = universe
 var :: Parser String
 var = (do 
                 a <- letter
-                b <- many1 $ alphaNum
+                b <- many $ alphaNum
                 return $ a:b)
         <|> (many1 $ oneOf "+-*/&|=<>")
 
@@ -74,8 +73,10 @@ piType = do
 
 apply :: Parser Expr
 apply = do
+        char '('
         a <- expr
         skipMany1 space
         b <- expr
+        char ')'
         return $ Apply a b
 
