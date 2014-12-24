@@ -9,14 +9,24 @@ data Expr
         | Pi Expr Expr --dependent product (pi _:t.e) We can extend de Bruijn notation to the dependent product type, as given \a:A.b : (Pi)a:A.B, the index is valid in both. TODO: This is true iff lambda terms cannot appear in valid types
         | Lambda Expr Expr --lambda abstraction (\_:t.e)
         | Apply Expr Expr --application (a b)
-        deriving (Show)
+
+instance Show Expr where
+        show (Var v) = show v
+        show (Universe i) = "Type" ++ (show i)
+        show (Pi t e) = (show t) ++ " -> " ++ (show e)
+        show (Lambda t e) = "\\:(" ++ (show t) ++ ")." ++ (show e)
+        show (Apply a b) = "(" ++ show a ++ " " ++ show b ++ ")"
 
 data Variable
          = DeBruijn Int {-references bound variables from lambdas indexed by structural proximity.
                          in this program, de Bruijn indices start at 0 rather than 1 
                          to align with list indices-}
          | Ref String --references predefined terms bound to names in the environment
-         deriving (Show, Eq)
+         deriving (Eq)
+         
+instance Show Variable where
+        show (DeBruijn i) = "#" ++ show i
+        show (Ref s) = "@" ++ s
 
 type IndexEnv = [(Expr, Maybe Expr)] -- (_:t = e)successive terms should be concatenated at the end of the list, not the beginning
 --using negative DeBruijn indices might be more efficient as list concatenation is much slower than appending
@@ -43,8 +53,8 @@ inferType re ie e = (nInferType re ie) =<< (normalize re ie e)
                 Apply a _ -> Left $ E.TypeError $ show a ++ " is not a function."
 
 --attempts to determine the type of a lambda term
-inferPi :: RefEnv -> IndexEnv -> Expr -> Expr -> E.ErrMonad Expr
-inferPi re ie b e = inferPi' =<< (normalize re ie e)
+inferPi :: RefEnv -> IndexEnv -> Expr -> Expr -> E.ErrMonad Expr --TODO: remember why
+inferPi re ie b e = inferPi' =<< (normalize re ie e)--TODO: need the normalize?
         where
                 inferPi' :: Expr -> E.ErrMonad Expr
                 inferPi' nf = case nf of
@@ -59,13 +69,13 @@ inferPi re ie b e = inferPi' =<< (normalize re ie e)
         
 --attempts to determine the type of a type
 inferUniverse :: RefEnv -> IndexEnv -> Expr -> E.ErrMonad Int
-inferUniverse re ie e = inferUn' =<< (normalize re ie e)
+inferUniverse re ie e = inferUn' =<< (normalize re ie e) --TODO: need the normalize?
         where inferUn' ex = case ex of
                 Universe i -> Right i
                 t -> Left $ E.TypeError $ show t ++ " is not a universe."
 
 
-normalize :: RefEnv -> IndexEnv -> Expr -> E.ErrMonad Expr --TODO:needs a join sometime, all output is Right $ Right
+normalize :: RefEnv -> IndexEnv -> Expr -> E.ErrMonad Expr
 normalize re ie arg@(Var (DeBruijn i)) = return $ E.catch (\x -> arg) $ resolveDeBruijn ie i
 normalize re ie arg@(Var (Ref s)) = return $ E.catch (\x -> arg) $ resolveRef re s
 normalize re ie arg@(Universe i) = Right arg

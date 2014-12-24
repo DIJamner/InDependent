@@ -61,26 +61,21 @@ lambda = do
 
 piType :: Parser Expr
 piType = do --TODO: causes to run in infinite loop
-        -- (arg, argType) <- (try $ do
- --                        char '('
- --                        spaces
- --                        a <- var
- --                        spaces
- --                        char ':'
- --                        spaces
- --                        argType <- expr
- --                        spaces
- --                        char ')'
- --                        return (a, argType)
- --                ) <|> do
- --                        argType <- expr
- --                        return ("!NONE", argType)
- --                <?> "dependent product type"      
- 
-        --TEMP
-        let arg = "!NONE"
-        argType <- typeableExpr
-        --END_TEMP
+        (arg, argType) <- (try $ do
+                        char '('
+                        spaces
+                        a <- var
+                        spaces
+                        char ':'
+                        spaces
+                        argType <- typeableExpr
+                        spaces
+                        char ')'
+                        return (a, argType)
+                ) <|> do
+                        argType <- typeableExpr
+                        return ("!NONE", argType)
+                <?> "function type"    
         spaces
         string "->"
         spaces
