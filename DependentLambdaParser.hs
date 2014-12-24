@@ -9,16 +9,28 @@ import DependentLambda
 
 expr :: Parser Expr
 expr = lambda
+        <|> try piType
         <|> try universe
         <|> try apply
         <|> (Var `fmap` (Ref `fmap` var))
-        -- <|> piType
         <|> do
                 char '('
                 e <- expr
                 char ')'
                 return e
         <?> "expression"
+
+--parses expressions that can appear in types
+typeableExpr :: Parser Expr
+typeableExpr = try universe
+        <|> try apply
+        <|> (Var `fmap` (Ref `fmap` var))
+        <|> do
+                char '('
+                e <- typeableExpr
+                char ')'
+                return e
+        <?> "typeable expression"
 
 var :: Parser String
 var = (do 
@@ -48,21 +60,27 @@ lambda = do
         
 
 piType :: Parser Expr
-piType = do
-        (arg, argType) <- (try $ do
-                        char '('
-                        spaces
-                        a <- var
-                        spaces
-                        char ':'
-                        spaces
-                        argType <- expr
-                        spaces
-                        char ')'
-                        return (a, argType)
-                ) <|> do
-                        argType <- expr
-                        return ("!NONE", argType)           
+piType = do --TODO: causes to run in infinite loop
+        -- (arg, argType) <- (try $ do
+ --                        char '('
+ --                        spaces
+ --                        a <- var
+ --                        spaces
+ --                        char ':'
+ --                        spaces
+ --                        argType <- expr
+ --                        spaces
+ --                        char ')'
+ --                        return (a, argType)
+ --                ) <|> do
+ --                        argType <- expr
+ --                        return ("!NONE", argType)
+ --                <?> "dependent product type"      
+ 
+        --TEMP
+        let arg = "!NONE"
+        argType <- typeableExpr
+        --END_TEMP
         spaces
         string "->"
         spaces
