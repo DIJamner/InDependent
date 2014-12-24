@@ -54,7 +54,7 @@ inferType re ie e = (nInferType re ie) =<< (normalize re ie e)
 
 --attempts to determine the type of a lambda term
 inferPi :: RefEnv -> IndexEnv -> Expr -> Expr -> E.ErrMonad Expr --TODO: remember why
-inferPi re ie b e = inferPi' =<< (normalize re ie e)--TODO: need the normalize?
+inferPi re ie b e = inferPi' e
         where
                 inferPi' :: Expr -> E.ErrMonad Expr
                 inferPi' nf = case nf of
@@ -69,7 +69,7 @@ inferPi re ie b e = inferPi' =<< (normalize re ie e)--TODO: need the normalize?
         
 --attempts to determine the type of a type
 inferUniverse :: RefEnv -> IndexEnv -> Expr -> E.ErrMonad Int
-inferUniverse re ie e = inferUn' =<< (normalize re ie e) --TODO: need the normalize?
+inferUniverse re ie e = inferUn' e
         where inferUn' ex = case ex of
                 Universe i -> Right i
                 t -> Left $ E.TypeError $ show t ++ " is not a universe."
