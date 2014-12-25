@@ -14,8 +14,9 @@ data Error
 
 type ErrMonad = Either Error
 
+type ErrLineMonad = Either (Int, Error)
 
-catch :: (Error -> a) -> ErrMonad a -> a
+catch :: (b -> a) -> Either b a -> a
 catch f e = case e of
         Left err -> f err
         Right res -> res

@@ -1,6 +1,7 @@
+native Int : Type1
 native add : Int->Int->Int
 a = \x:Int->Int.x
-b = \y:Int -> Int -> Int.\z:Int.((a (y z)) z)
+b = \y:Int -> Int --> Int.\z:Int.((a (y z)) z)
 c : Int->Int
 c = (b add)
 --This is a comment

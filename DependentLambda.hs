@@ -4,8 +4,10 @@ module DependentLambda (
         IndexEnv,
         RefEnv,
         inferType,
+        nInferType,
         normalize,
         exprEq,
+        nExprEq,
         abstract
 ) where
 import qualified Errors as E
@@ -43,27 +45,30 @@ type IndexEnv = [(Expr, Maybe Expr)] -- (_:t = e)successive terms should be conc
 type RefEnv = [(String, Expr, Maybe Expr)]--(v:t = e)
 
 --Attempts to calculate the type of the term in the provided environment
-inferType :: RefEnv -> IndexEnv -> Expr -> E.ErrMonad Expr--TODO: merge RefEnv, IndexEnv into tuple?
+inferType :: RefEnv -> IndexEnv -> Expr -> E.ErrMonad Expr
 inferType re ie e = (nInferType re ie) =<< (normalize re ie e)
-        where nInferType re ie e = case e of
-                Var v -> case v of
-                        DeBruijn i -> deBruijnType ie i
-                        Ref s -> refType re s
-                Universe i -> Right $ Universe (i + 1)
-                Pi t ee -> Universe `fmap` univMax --TODO: need to better understand
-                        where
-                                univMax :: E.ErrMonad Int
-                                univMax = ((max `fmap` (inferUniverse t)) <*> (inferUniverse ee))
-                Lambda t ee -> Pi t `fmap` (inferType re (ie ++ [(t, Nothing)]) ee)
-                Apply a b -> do
-                        at <- inferType re ie a 
-                        bt <- inferType re ie b
-                        case at of
-                                Pi t e -> if exprEq re ie t bt then return $ deBruijnSub 1 b e
-                                        else Left $ E.TypeError $ show b ++ " : " 
-                                                ++ show bt ++ " not of type " ++ show t
-                                _ -> Left $ E.CompilationError $ show a ++ 
-                                        " : " ++ show at ++ " is not a function."
+
+--attempts to infer the type of a normalized term
+nInferType :: RefEnv -> IndexEnv -> Expr -> E.ErrMonad Expr
+nInferType re ie e = case e of
+        Var v -> case v of
+                DeBruijn i -> deBruijnType ie i
+                Ref s -> refType re s
+        Universe i -> Right $ Universe (i + 1)
+        Pi t ee -> Universe `fmap` univMax --TODO: need to better understand
+                where
+                        univMax :: E.ErrMonad Int
+                        univMax = ((max `fmap` (inferUniverse t)) <*> (inferUniverse ee))
+        Lambda t ee -> Pi t `fmap` (nInferType re (ie ++ [(t, Nothing)]) ee)
+        Apply a b -> do
+                at <- nInferType re ie a 
+                bt <- nInferType re ie b
+                case at of
+                        Pi t e -> if exprEq re ie t bt then return $ deBruijnSub 1 b e
+                                else Left $ E.TypeError $ show b ++ " : " 
+                                        ++ show bt ++ " not of type " ++ show t
+                        _ -> Left $ E.TypeError $ show a ++ 
+                                " : " ++ show at ++ " is not a function."
         
 --attempts to determine the type of a type (must be normalized)
 inferUniverse :: Expr -> E.ErrMonad Int
@@ -135,17 +140,17 @@ refType ((v, t, e):re) s = if s == v then Right t else refType re s
 
 --tests if two expressions are equal
 exprEq :: RefEnv -> IndexEnv -> Expr -> Expr -> Bool --TODO: should eat errors or no?
-exprEq re ie a b = let
-                nExprEq :: Expr -> Expr -> Bool --assumes both terms have been normalized
-                nExprEq (Var a) (Var b) = a == b 
-                nExprEq (Apply a1 b1) (Apply a2 b2) = nExprEq a1 a2 && nExprEq b1 b2
-                nExprEq (Lambda t1 e1) (Lambda t2 e2) = nExprEq t1 t2 && nExprEq e1 e2
-                nExprEq (Universe i1) (Universe i2) = i1 == i2
-                nExprEq (Pi t1 e1) (Pi t2 e2) = nExprEq t1 t2 && nExprEq e1 e2
-                nExprEq a b = False
-        in case nExprEq `fmap` (normalize re ie a) <*> (normalize re ie b) of
-                Left _ -> False
-                Right res -> res
+exprEq re ie a b = case nExprEq `fmap` (normalize re ie a) <*> (normalize re ie b) of
+        Left _ -> False
+        Right res -> res
+                
+nExprEq :: Expr -> Expr -> Bool --assumes both terms have been normalized
+nExprEq (Var a) (Var b) = a == b 
+nExprEq (Apply a1 b1) (Apply a2 b2) = nExprEq a1 a2 && nExprEq b1 b2
+nExprEq (Lambda t1 e1) (Lambda t2 e2) = nExprEq t1 t2 && nExprEq e1 e2
+nExprEq (Universe i1) (Universe i2) = i1 == i2
+nExprEq (Pi t1 e1) (Pi t2 e2) = nExprEq t1 t2 && nExprEq e1 e2
+nExprEq a b = False
 
 --performs either a lambda or pi abstraction of a variable over an expression
 abstract :: (Expr -> Expr -> Expr) -> String -> Expr -> Expr -> Expr
@@ -153,7 +158,7 @@ abstract exprKind s t e = exprKind t $ abstract' 1 s e where
         --replaces all instances of the given variable with the appropriate de Bruijn index
         abstract' :: Int -> String -> Expr -> Expr
         abstract' i s arg@(Var (Ref ss)) = if s == ss then Var $ DeBruijn i else arg
-        abstract' i s (Var (DeBruijn ii)) = Var $ DeBruijn (ii + 1)
+        abstract' i s arg@(Var (DeBruijn ii)) = arg
         abstract' i s arg@(Universe ii) = arg
         abstract' i s (Pi t e) = Pi (abstract' i s t) (abstract' (i + 1) s e)
         abstract' i s (Lambda t e) = Lambda (abstract' i s t) (abstract' (i + 1) s e)
