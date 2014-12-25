@@ -53,7 +53,7 @@ inferType re ie e = (nInferType re ie) =<< (normalize re ie e)
                 Pi t ee -> Universe `fmap` univMax --TODO: need to better understand
                         where
                                 univMax :: E.ErrMonad Int
-                                univMax = ((max `fmap` (inferUniverse re ie t)) <*> (inferUniverse re ie ee))
+                                univMax = ((max `fmap` (inferUniverse t)) <*> (inferUniverse ee))
                 Lambda t ee -> Pi t `fmap` (inferType re (ie ++ [(t, Nothing)]) ee)
                 Apply a b -> do
                         at <- inferType re ie a 
@@ -65,12 +65,11 @@ inferType re ie e = (nInferType re ie) =<< (normalize re ie e)
                                 _ -> Left $ E.CompilationError $ show a ++ 
                                         " : " ++ show at ++ " is not a function."
         
---attempts to determine the type of a type
-inferUniverse :: RefEnv -> IndexEnv -> Expr -> E.ErrMonad Int
-inferUniverse re ie e = inferUn' e
-        where inferUn' ex = case ex of
-                Universe i -> Right i
-                t -> Left $ E.TypeError $ show t ++ " is not a universe."
+--attempts to determine the type of a type (must be normalized)
+inferUniverse :: Expr -> E.ErrMonad Int
+inferUniverse e = case e of
+        Universe i -> return i
+        _ -> Left $ E.TypeError $ show e ++ " is not a universe."
 
 
 normalize :: RefEnv -> IndexEnv -> Expr -> E.ErrMonad Expr
