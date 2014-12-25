@@ -38,34 +38,23 @@ inferType :: RefEnv -> IndexEnv -> Expr -> E.ErrMonad Expr--TODO: merge RefEnv, 
 inferType re ie e = (nInferType re ie) =<< (normalize re ie e)
         where nInferType re ie e = case e of
                 Var v -> case v of
-                        DeBruijn i -> (inferType re ie) =<< (resolveDeBruijn ie i)
-                        Ref s -> getType re s where 
-                                getType :: RefEnv -> String -> E.ErrMonad Expr
-                                getType [] s = Left $ E.FreeVarError $ "Type of " ++ s ++ " unknown."
-                                getType ((v, t, e):re) s = if s == v then Right t else getType re s
+                        DeBruijn i -> deBruijnType ie i
+                        Ref s -> refType re s
                 Universe i -> Right $ Universe (i + 1)
                 Pi t ee -> Universe `fmap` univMax --TODO: need to better understand
                         where
                                 univMax :: E.ErrMonad Int
                                 univMax = ((max `fmap` (inferUniverse re ie t)) <*> (inferUniverse re ie ee))
                 Lambda t ee -> Pi t `fmap` (inferType re (ie ++ [(t, Nothing)]) ee)
-                Apply a@(Lambda t ee) b -> (inferPi re ie b) =<< (inferType re ie a) 
-                Apply a _ -> Left $ E.TypeError $ show a ++ " is not a function."
-
---attempts to determine the type of a lambda term
-inferPi :: RefEnv -> IndexEnv -> Expr -> Expr -> E.ErrMonad Expr --TODO: remember why
-inferPi re ie b e = inferPi' e
-        where
-                inferPi' :: Expr -> E.ErrMonad Expr
-                inferPi' nf = case nf of
-                        Pi tt ee -> checkPi =<< btype
-                                where 
-                                        btype :: E.ErrMonad Expr
-                                        btype = inferType re ie b
-                                        checkPi :: Expr -> Either E.Error Expr
-                                        checkPi bt = if exprEq re ie tt bt then Right $ deBruijnSub 1 tt ee
-                                        else Left $ E.TypeError $ show b ++ " not of type " ++ show tt
-                        _ -> Left $ E.CompilationError "Something strange happened."
+                Apply a b -> do
+                        at <- inferType re ie a 
+                        bt <- inferType re ie b
+                        case at of
+                                Pi t e -> if exprEq re ie t bt then return $ deBruijnSub 1 b e
+                                        else Left $ E.TypeError $ show b ++ " : " 
+                                                ++ show bt ++ " not of type " ++ show t
+                                _ -> Left $ E.CompilationError $ show a ++ 
+                                        " : " ++ show at ++ " is not a function."
         
 --attempts to determine the type of a type
 inferUniverse :: RefEnv -> IndexEnv -> Expr -> E.ErrMonad Int
@@ -93,8 +82,6 @@ normalize re ie (Apply a b) = join $ (nApply re ie) `fmap` (normalize re ie a) `
                                         else Left $ E.TypeError $ "expected " ++ show t ++ ", actual " ++ show btype ++ " in " ++
                                                 show a ++ " applied to " ++ show b
                 nApply re ie a b = return $ Apply a b
-        
-        
 
 --replaces the given index (relative to the current scope) with the expression
 --e.g. (1, e, \1) = e, (1, e, \\(2 \1)) = \(e \1)
@@ -115,10 +102,15 @@ refSub s e (Pi t e2) = Pi (refSub s e t) (refSub s e e2)
 refSub s e (Lambda t e2) = Lambda (refSub s e t) (refSub s e e2)
 refSub s e (Apply a b) = Apply (refSub s e a) (refSub s e b)
 
-resolveDeBruijn :: IndexEnv -> Int -> E.ErrMonad Expr
+resolveDeBruijn :: IndexEnv -> Int -> E.ErrMonad Expr --TODO: combine with below for tuple output?
 resolveDeBruijn ie i = if length ie >= i then case e of 
                 Nothing -> Right $ Var $ DeBruijn i
                 Just v -> Right $ v 
+        else Left $ E.FreeVarError $ "Unresolved DeBruijn index " ++ (show i) ++ "."
+        where (t, e) = ie !! (i-1) --de Bruijn indices are 1 indexed
+
+deBruijnType :: IndexEnv -> Int -> E.ErrMonad Expr
+deBruijnType ie i = if length ie >= i then return t
         else Left $ E.FreeVarError $ "Unresolved DeBruijn index " ++ (show i) ++ "."
         where (t, e) = ie !! (i-1) --de Bruijn indices are 1 indexed
 
@@ -128,6 +120,10 @@ resolveRef ((v, t, e):re) s = if s == v then case e of
                 Nothing -> return $ Var $ Ref s
                 Just ee -> return ee
         else Right =<< (resolveRef re s)
+        
+refType :: RefEnv -> String -> E.ErrMonad Expr
+refType [] s = Left $ E.FreeVarError $ "Type of " ++ s ++ " unknown."
+refType ((v, t, e):re) s = if s == v then Right t else refType re s
 
 --tests if two expressions are equal
 exprEq :: RefEnv -> IndexEnv -> Expr -> Expr -> Bool --TODO: should eat errors or no?
