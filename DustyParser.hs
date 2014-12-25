@@ -35,21 +35,19 @@ adt = do
         v <- var
         spaces
         char '{'
-        cons <- many1 (do
-                c <- adtConstructor
+        cons <- many1 $ try (do
+                whitespace
+                c <- typeAnnotation
                 char '\n'
                 return c)
+        whitespace
         char '}'
         return $ ADT v cons
-        
-adtConstructor :: Parser (String, Expr)
-adtConstructor = return ("adtc", Universe 1)--TODO
 
 comment :: Parser Statement
 comment = do
         string "--"
         comm <- many (satisfy (\c -> not (c == '\n')))
-        char '\n'
         return $ Comment comm
 
 inline :: Parser Statement
@@ -62,6 +60,9 @@ line = do
         text <- many (satisfy (\c -> not (c == '\n')))
         char '\n'
         return $ text ++ "\n"
+
+whitespace :: Parser ()
+whitespace = skipMany (newline <|> space)
 
 assign :: Parser Statement
 assign = do
