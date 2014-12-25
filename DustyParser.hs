@@ -1,0 +1,98 @@
+module DustyParser where
+
+import DependentLambdaParser
+import DependentLambda
+import Dusty
+
+import Text.Parsec
+import Text.Parsec.String (Parser)
+
+dusty :: Parser Dusty
+dusty = many1 (do
+        s <- statement
+        char '\n'
+        return s)
+
+statement :: Parser Statement
+statement = native 
+        <|> adt
+        <|> comment
+        <|> inline
+        <|> assign
+        <?> "statement"
+        
+native :: Parser Statement
+native = do
+        string "native"
+        spaces
+        (v,e) <- typeAnnotation
+        return $ Native v e
+        
+adt :: Parser Statement
+adt = do
+        string "data"
+        spaces
+        v <- var
+        spaces
+        char '{'
+        cons <- many1 (do
+                c <- adtConstructor
+                char '\n'
+                return c)
+        char '}'
+        return $ ADT v cons
+        
+adtConstructor :: Parser (String, Expr)
+adtConstructor = return ("adtc", Universe 1)--TODO
+
+comment :: Parser Statement
+comment = do
+        string "--"
+        comm <- many (satisfy (\c -> not (c == '\n')))
+        char '\n'
+        return $ Comment comm
+
+inline :: Parser Statement
+inline = between (string "{*") (string "*}") (do
+        ls <- many line
+        return $ Inline $ foldr (++) "" ls)
+
+line :: Parser String
+line = do
+        text <- many (satisfy (\c -> not (c == '\n')))
+        char '\n'
+        return $ text ++ "\n"
+
+assign :: Parser Statement
+assign = do
+        ta <- optionMaybe $ do
+                ta <- try typeAnnotation
+                char '\n'
+                return ta
+        v <- var
+        spaces
+        char '='
+        spaces
+        e <- expr
+        case ta of
+                Nothing -> return $ Assign v Nothing e
+                Just (v1, t) -> if v1 == v then return $ Assign v (Just t) e
+                        else fail $ "Type annotation for " ++ v1 ++
+                                " requires an accompanying definition."
+        
+
+typeAnnotation :: Parser (String, Expr)
+typeAnnotation = do
+        v <- var
+        spaces
+        char ':'
+        spaces
+        e <- expr
+        return (v, e)
+        
+        
+        
+        
+        
+        
+        

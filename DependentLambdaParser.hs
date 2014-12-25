@@ -4,7 +4,6 @@ import Control.Monad
 import Text.Parsec
 import Text.Parsec.String (Parser)
 
-import qualified Errors as E
 import DependentLambda
 
 expr :: Parser Expr
@@ -60,7 +59,7 @@ lambda = do
         
 
 piType :: Parser Expr
-piType = do --TODO: causes to run in infinite loop
+piType = do --TODO: clean up
         (arg, argType) <- (try $ do
                         char '('
                         spaces

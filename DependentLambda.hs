@@ -1,4 +1,13 @@
-module DependentLambda where
+module DependentLambda (
+        Expr(..),
+        Variable(..),
+        IndexEnv,
+        RefEnv,
+        inferType,
+        normalize,
+        exprEq,
+        abstract
+) where
 import qualified Errors as E
 import Control.Monad
 import Control.Applicative
