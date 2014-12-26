@@ -20,7 +20,24 @@ genADTJS :: String -> [(String, Expr)] -> JS.Statement
 genADTJS s cs = JS.StmntList (map (genConstructorJS s) cs)
 
 genConstructorJS :: String -> (String, Expr) -> JS.Statement
-genConstructorJS s (c, t) = JS.Function c args (funcBody args)
+genConstructorJS s (c, t) = JS.StmntList [
+                genConsFuncJS s (c, t),
+                genConsObjJS s (c, t)
+        ]
+        
+genConsFuncJS :: String -> (String, Expr) -> JS.Statement
+genConsFuncJS s (c, t) = JS.Assignment c $ JS.AnonymousFunction args (funcBody args)
+        where
+                args = (getArgStrings 1 t)
+                getArgStrings :: Int -> Expr -> [String]
+                getArgStrings i (Pi at rt) = ("$d" ++ show i):(getArgStrings (i+1) rt)
+                getArgStrings i _ = []
+                funcBody :: [String] -> JS.JavaScript
+                funcBody ss = [JS.Return $ JS.NewObj $ JS.FunctionCall (JS.Variable $ "$ADT" ++ c) 
+                        (map JS.Variable args)]
+
+genConsObjJS :: String -> (String, Expr) -> JS.Statement
+genConsObjJS s (c, t) = JS.Function ("$ADT" ++ c) args (funcBody args)
         where
                 args = (getArgStrings 1 t)
                 getArgStrings :: Int -> Expr -> [String]

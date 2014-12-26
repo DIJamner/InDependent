@@ -11,6 +11,7 @@ dusty :: Parser Dusty
 dusty = many1 (do
         s <- statement
         char '\n'
+        whitespace
         return s)
 
 statement :: Parser Statement
@@ -51,9 +52,10 @@ comment = do
         return $ Comment comm
 
 inline :: Parser Statement
-inline = between (string "{*") (string "*}") (do
-        ls <- many line
-        return $ Inline $ foldr (++) "" ls)
+inline = do
+        string "{*"
+        ls <- manyTill line (string "*}")
+        return $ Inline $ foldr (++) "" ls
 
 line :: Parser String
 line = do

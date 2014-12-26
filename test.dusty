@@ -10,3 +10,10 @@ data Nat {
     Suc : Nat -> Nat
 
 }
+d = (Suc Zero)
+{*
+var jsvar = a(1)
+var useDusty = Suc(Zero())
+
+*}
+

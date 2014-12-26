@@ -8,6 +8,7 @@ data Expr
         | LInt Int
         | LDouble Double
         | Variable String
+        | NewObj Expr
         | FunctionCall Expr [Expr]--TODO: what about calling anonymous functions? fn(){return 0;}()
         | BinaryOp Expr String Expr
         | UnaryOp Expr String
@@ -54,6 +55,7 @@ indent 0 = ""
 indent n = "    " ++ indent (n - 1)
 
 exprToText :: Int -> Expr -> String
+exprToText i (NewObj e) = "new " ++ exprToText i e
 exprToText i (LString s) = "\"" ++ s ++ "\""
 exprToText i (LInt int) = show int
 exprToText i (LDouble d) = show d
@@ -68,8 +70,6 @@ exprToText i e = ""
 funcArgs :: (a -> String) -> [a] -> String
 funcArgs fn [] = "()"
 funcArgs fn (e:es) = "(" ++ (foldl (++) (fn e) (map (\s -> ", " ++ fn s) es)) ++ ")"
-
-
 
 
 test :: JavaScript
