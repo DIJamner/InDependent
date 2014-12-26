@@ -14,8 +14,8 @@ dusty = many1 (do
         return s)
 
 statement :: Parser Statement
-statement = native 
-        <|> adt
+statement = try native 
+        <|> try adt
         <|> comment
         <|> inline
         <|> assign
