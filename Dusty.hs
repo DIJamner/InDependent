@@ -4,25 +4,25 @@ import DependentLambda
 import qualified Errors as E
 
 data Statement--TODO: add file imports
-        = Assign String (Maybe Expr) Expr
+        = Assign String (Maybe Expr) Expr --TODO: make type mandatory?
         | Native String Expr 
-        | ADT String [(String,Expr)] --Type [(Constructor, ConsType)]
+        | ADT String [(String,Expr)] --Type [(Constructor, ConsType)] TODO: allow MyType : Type2?
         | Inline String --a section of target language code inlined in the source file
         | Comment String
         deriving(Show)
         
 type Dusty = [Statement]
 
-validate :: RefEnv -> Dusty -> E.ErrLineMonad ()
+
+validate :: RefEnv -> Dusty -> E.ErrLineMonad RefEnv
 validate re code = validate' 1 re code where
-        validate' :: Int -> RefEnv -> Dusty -> E.ErrLineMonad ()
-        validate' l re [] = return ()
+        validate' :: Int -> RefEnv -> Dusty -> E.ErrLineMonad RefEnv
+        validate' l re [] = return re
         validate' l re (s:ss) = do
                 newre <- case validateS re s of
                         Left err -> Left (l, err)
                         Right res -> return res
                 validate' (l+1) newre ss
-                return ()
 
 --attempts to validate a given statement in the current environment
 --and returns a new environment if successful

@@ -1,29 +1,32 @@
-module JSWriter (JavaScript, JSExp(..), Statement(..), toText) where
+module JSWriter (JavaScript, Expr(..), Statement(..), toText) where --TODO: divide into JS and JSWriter
 --TODO: lots, incl. objects
 
 type JavaScript = [Statement]
 
-data JSExp
+data Expr
         = LString String
         | LInt Int
         | LDouble Double
         | Variable String
-        | FunctionCall JSExp [JSExp]--TODO: what about calling anonymous functions? fn(){return 0;}()
-        | BinaryOp JSExp String JSExp
-        | UnaryOp JSExp String
-        | ArrayElement JSExp Int
+        | FunctionCall Expr [Expr]--TODO: what about calling anonymous functions? fn(){return 0;}()
+        | BinaryOp Expr String Expr
+        | UnaryOp Expr String
+        | ArrayElement Expr Int
         | AnonymousFunction [String] JavaScript
         deriving (Eq, Show)
         
 data Statement 
-        = StateExp JSExp
-        | NewVar String JSExp
-        | Assignment String JSExp
-        | If JSExp JavaScript --do I want to force blocks? yes, I think
+        = StateExp Expr
+        | NewVar String Expr
+        | Assignment String Expr
+        | Function String [String] JavaScript
+        | If Expr JavaScript
         | Else JavaScript
-        | For JavaScript JSExp JSExp JavaScript
-        | Return JSExp
+        | For JavaScript Expr Expr JavaScript
+        | Return Expr
         | Comment String
+        | CodeBlock String --represents user-written JS
+        | StmntList [Statement]
         deriving (Eq, Show)
 
 toText :: Int -> JavaScript -> String
@@ -38,13 +41,18 @@ stmntToText n (If expr js) = indent n ++ "if(" ++ exprToText n expr ++ "){\n"
         
 stmntToText n (Return expr) = indent n ++ "return " ++ exprToText n expr ++ "\n"
 stmntToText n (Comment s) = indent n ++ "/*" ++ s ++ "*/\n"
-stmntToText n s = ""
+stmntToText n (CodeBlock s) = s ++ "\n"
+stmntToText n (StmntList []) = ""
+stmntToText n (StmntList (s:ss)) = (stmntToText n s) ++ (stmntToText n (StmntList ss))
+stmntToText n (Function s [] js) = indent n ++ "function " ++ s ++ "(){" ++ toText (n+1) js ++ indent n ++ "}" 
+stmntToText n (Function s args js) = indent n ++ "function " ++ s ++ "(" ++ (foldr (\a b -> a ++ "," ++ b) "" args) ++ "){" ++ toText (n+1) js ++ indent n ++ "}" --TODO: make sure foldr is right, add js
+stmntToText n s = ""--TODO: should eventually remove
 
 indent :: Int -> String
 indent 0 = ""
 indent n = "    " ++ indent (n - 1)
 
-exprToText :: Int -> JSExp -> String
+exprToText :: Int -> Expr -> String
 exprToText i (LString s) = "\"" ++ s ++ "\""
 exprToText i (LInt int) = show int
 exprToText i (LDouble d) = show d

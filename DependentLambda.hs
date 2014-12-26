@@ -8,6 +8,7 @@ module DependentLambda (
         normalize,
         exprEq,
         nExprEq,
+        resolveDeBruijn,
         abstract
 ) where
 import qualified Errors as E
@@ -59,7 +60,7 @@ nInferType re ie e = case e of
                 where
                         univMax :: E.ErrMonad Int
                         univMax = ((max `fmap` (inferUniverse t)) <*> (inferUniverse ee))
-        Lambda t ee -> Pi t `fmap` (nInferType re (ie ++ [(t, Nothing)]) ee)
+        Lambda t ee -> Pi t `fmap` (nInferType re ((t, Nothing):ie) ee)
         Apply a b -> do
                 at <- nInferType re ie a 
                 bt <- nInferType re ie b
@@ -81,8 +82,8 @@ normalize :: RefEnv -> IndexEnv -> Expr -> E.ErrMonad Expr
 normalize re ie arg@(Var (DeBruijn i)) = return $ E.catch (\x -> arg) $ resolveDeBruijn ie i
 normalize re ie arg@(Var (Ref s)) = return $ E.catch (\x -> arg) $ resolveRef re s
 normalize re ie arg@(Universe i) = Right arg
-normalize re ie (Pi t e) = Pi `fmap` (normalize re ie t) <*> (normalize re (ie ++ [(t,Nothing)]) e)
-normalize re ie (Lambda t e) = Lambda `fmap` (normalize re ie t) <*> (normalize re (ie ++ [(t,Nothing)]) e) 
+normalize re ie (Pi t e) = Pi `fmap` (normalize re ie t) <*> (normalize re ((t,Nothing):ie) e)
+normalize re ie (Lambda t e) = Lambda `fmap` (normalize re ie t) <*> (normalize re ((t,Nothing):ie) e) 
 normalize re ie (Apply a b) = join $ (nApply re ie) `fmap` (normalize re ie a) `ap` (normalize re ie b) 
         where
                 nApply :: RefEnv -> IndexEnv -> Expr -> Expr -> E.ErrMonad Expr
