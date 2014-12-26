@@ -24,7 +24,7 @@ genConstructorJS s (c, t) = JS.Function c args (funcBody args)
         where
                 args = (getArgStrings 1 t)
                 getArgStrings :: Int -> Expr -> [String]
-                getArgStrings i (Pi at rt) = ("µ" ++ show i):(getArgStrings (i+1) rt)
+                getArgStrings i (Pi at rt) = ("$d" ++ show i):(getArgStrings (i+1) rt)
                 getArgStrings i _ = []
                 funcBody :: [String] -> JS.JavaScript
                 funcBody ss = (map (\v -> JS.Assignment ("this." ++ v) $ JS.Variable v) ss)--TODO: add type? Necessary? How to deal with rec. of new? return?,
@@ -37,10 +37,10 @@ lambdaToJS ie arg@(Var (DeBruijn i)) = case resolveDeBruijn ie i of
         Right (Var (Ref s)) -> JS.Variable s --TODO: add error cases? Should never error if validated
         Left err -> JS.Variable $ "Uh oh. " ++ show err
         Right res -> JS.Variable $ "Uh oh. " ++ show res
-lambdaToJS ie (Universe i) = JS.FunctionCall (JS.Variable "univtype") [(JS.LInt i)] --TODO: use Object prototype to implement typesystem in JS????? IMPORTANT!!!!!!!!!!
-lambdaToJS ie (Pi at rt) = JS.FunctionCall (JS.Variable "pitype") 
+lambdaToJS ie (Universe i) = JS.FunctionCall (JS.Variable "Universe") [(JS.LInt i)] --TODO: use Object prototype to implement typesystem in JS????? IMPORTANT!!!!!!!!!!
+lambdaToJS ie (Pi at rt) = JS.FunctionCall (JS.Variable "PiType") 
         [(lambdaToJS ie at),(lambdaToJS ie rt)]
 lambdaToJS ie (Lambda t e) = JS.AnonymousFunction [argname] 
         [JS.Return $ lambdaToJS ((t, Just $ Var $ Ref argname):ie) e]
-        where argname = "$" ++ (show $ length ie)
+        where argname = "$d" ++ (show $ length ie)
 lambdaToJS ie (Apply a b) = JS.FunctionCall (lambdaToJS ie a) [(lambdaToJS ie b)]
