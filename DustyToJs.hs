@@ -43,9 +43,9 @@ genConsObjJS s (c, t) = JS.Function ("$ADT" ++ c) args (funcBody $ len)
                 getArgStrings :: Int -> Expr -> (Int,[String])
                 getArgStrings i (Pi at rt) = (len,("$d" ++ show i):args)
                         where (len, args) = (getArgStrings (i+1) rt)
-                getArgStrings i _ = (i,[])
+                getArgStrings i _ = (i-1,[])
                 funcBody :: Int -> JS.JavaScript
-                funcBody i = (JS.Assignment ("this[0]") $ JS.LString c):
+                funcBody i = (JS.Assignment ("this[0]") $ JS.LInt len):
                         (JS.Assignment ("this.isDusty") $ JS.Variable "true"):
                         (map fieldAssign $ countFrom i)
                 fieldAssign :: Int -> JS.Statement

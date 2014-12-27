@@ -27,9 +27,12 @@ function PiType(at, rt){
 function eq(a,b){
     if(a.constructor === b.constructor){
         if(a.isDusty && b.isDusty){
-            for(var i = 1; i <= a[0]; i++){
-                if(!eq(a[i], b[i])) return false;
+            for(var i = 0; i <= a[0]; i++){
+                if(!eq(a[i], b[i])){
+                     return false;
+                }
             }
+            return true;
         }else{
             return a === b;//primitives and non-Dusty objects
         }
