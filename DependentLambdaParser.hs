@@ -87,8 +87,7 @@ apply :: Parser Expr
 apply = do
         char '('
         a <- expr
-        skipMany1 space
-        b <- expr
+        args <- many1 (do spaces;expr)
         char ')'
-        return $ Apply a b
+        return $ foldl (\a b -> Apply a b) a args
 
