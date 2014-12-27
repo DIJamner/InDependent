@@ -10,7 +10,7 @@ dustyToJS [] = []
 dustyToJS (s:ss) = (statementToJS s):(dustyToJS ss) 
 
 statementToJS :: Statement -> JS.Statement --TODO: need refenv? errmonad?
-statementToJS (Assign s _ e) = JS.Assignment s $ lambdaToJS [] e
+statementToJS (Assign s _ e) = JS.NewVar s $ lambdaToJS [] e
 statementToJS arg@(Native _ _) = JS.Comment $ show arg
 statementToJS (ADT s cs) = genADTJS s cs
 statementToJS (Inline s) = JS.CodeBlock s
@@ -26,7 +26,7 @@ genConstructorJS s (c, t) = JS.StmntList [
         ]
         
 genConsFuncJS :: String -> (String, Expr) -> JS.Statement
-genConsFuncJS s (c, t) = JS.Assignment c $ JS.AnonymousFunction args (funcBody args)
+genConsFuncJS s (c, t) = JS.NewVar c $ JS.AnonymousFunction args (funcBody args)
         where
                 args = (getArgStrings 1 t)
                 getArgStrings :: Int -> Expr -> [String]
@@ -37,15 +37,23 @@ genConsFuncJS s (c, t) = JS.Assignment c $ JS.AnonymousFunction args (funcBody a
                         (map JS.Variable args)]
 
 genConsObjJS :: String -> (String, Expr) -> JS.Statement
-genConsObjJS s (c, t) = JS.Function ("$ADT" ++ c) args (funcBody args)
+genConsObjJS s (c, t) = JS.Function ("$ADT" ++ c) args (funcBody $ len)
         where
-                args = (getArgStrings 1 t)
-                getArgStrings :: Int -> Expr -> [String]
-                getArgStrings i (Pi at rt) = ("$d" ++ show i):(getArgStrings (i+1) rt)
-                getArgStrings i _ = []
-                funcBody :: [String] -> JS.JavaScript
-                funcBody ss = (map (\v -> JS.Assignment ("this." ++ v) $ JS.Variable v) ss)--TODO: add type? Necessary? How to deal with rec. of new? return?,
-
+                (len, args) = (getArgStrings 1 t)
+                getArgStrings :: Int -> Expr -> (Int,[String])
+                getArgStrings i (Pi at rt) = (len,("$d" ++ show i):args)
+                        where (len, args) = (getArgStrings (i+1) rt)
+                getArgStrings i _ = (i,[])
+                funcBody :: Int -> JS.JavaScript
+                funcBody i = (JS.Assignment ("this[0]") $ JS.LString c):
+                        (JS.Assignment ("this.isDusty") $ JS.Variable "true"):
+                        (map fieldAssign $ countFrom i)
+                fieldAssign :: Int -> JS.Statement
+                fieldAssign i = JS.Assignment ("this[" ++ show i ++"]") $ JS.Variable $
+                         "$d" ++ show i
+                countFrom :: Int -> [Int]
+                countFrom 0 = []
+                countFrom i = i:(countFrom $ i - 1)
 
 lambdaToJS :: IndexEnv -> Expr -> JS.Expr
 lambdaToJS ie (Var (Ref s)) = JS.Variable s 
