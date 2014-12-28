@@ -24,7 +24,9 @@ function PiType(at, rt){
     return this
 }
 
-function eq(a,b){
+//tests whether a and b are structurally equivalent
+var eq = R.curry(function(a,b){//TODO: may be able to remove type args if shown to be unnecessary
+                    //if not, use implicit arg notation in code
     if(a.constructor === b.constructor){
         if(a.isDusty && b.isDusty){
             for(var i = 0; i <= a[0]; i++){
@@ -40,4 +42,9 @@ function eq(a,b){
     
     return false;
     
-}
+});
+
+//tests whether obj is an instance of the given ADT constructor
+var matchADT = R.curry(function(obj, adt){
+    return obj.isDusty && adt.isDusty && obj.constructor === adt.constructor
+});

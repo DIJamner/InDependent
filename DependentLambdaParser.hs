@@ -56,36 +56,75 @@ lambda = do
         spaces
         char ':'
         spaces
-        t <- expr
+        (r, t) <- lArgType
         char '.'
         e <- expr
-        return $ abstract Lambda x t e
+        return $ abstract (Lambda r) x t e
         
+lArgType :: Parser (Req, Expr)
+lArgType = (do
+        char '{'
+        spaces
+        t <- expr
+        spaces
+        char '}'
+        return (Impl, t))
+        <|>(do 
+                t <- expr
+                return (Expl, t))
 
 piType :: Parser Expr
-piType = do --TODO: clean up
-        (arg, argType) <- (try $ do
-                        char '('
-                        spaces
-                        a <- var
-                        spaces
-                        char ':'
-                        spaces
-                        argType <- typeableExpr
-                        spaces
-                        char ')'
-                        return (a, argType)
-                ) <|> do
-                        argType <- typeableExpr
-                        return ("!NONE", argType)
-                <?> "function type"    
+piType = do
+        (arg, r, at) <- pArgType
         spaces
         string "->"
         spaces
         resType <- expr
         --this optimization short circuits the abstraction for non-dependent terms
-        return $ if arg == "!NONE" then Pi argType resType 
-                else abstract Pi arg argType resType
+        return $ if arg == "!NONE" then Pi r at resType 
+                else abstract (Pi r) arg at resType
+
+pArgType :: Parser (String, Req, Expr)
+pArgType = (try dependentType) <|> do
+                        (r, at) <- (between (char '{') (char '}') $ do
+                                spaces
+                                t <- typeableExpr
+                                spaces
+                                return (Impl, t))
+                                <|> do
+                                        t <- typeableExpr
+                                        return (Expl, t)
+                                <?> "non dependent type"
+                        return ("!NONE", r, at)
+                <?> "function type"
+
+dependentType :: Parser (String, Req, Expr)
+dependentType = (do
+        char '('
+        spaces
+        a <- var
+        spaces
+        char ':'
+        spaces
+        let r = Expl
+        at <- typeableExpr
+        spaces
+        char ')'
+        return (a, r, at))
+        <|> (do
+                char '{'
+                spaces
+                a <- var
+                spaces
+                char ':'
+                spaces
+                let r = Impl
+                at <- typeableExpr
+                spaces
+                char '}'
+                return (a, r, at))
+                
+
 
 apply :: Parser Expr
 apply = do

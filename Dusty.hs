@@ -4,9 +4,9 @@ import DependentLambda
 import qualified Errors as E
 
 data Statement--TODO: add file imports
-        = Assign String (Maybe Expr) Expr --TODO: make type mandatory?
+        = Assign String (Maybe Expr) Expr --TODO: make type mandatory and infer if not there?
         | Native String Expr 
-        | ADT String [(String,Expr)] --Type [(Constructor, ConsType)] TODO: allow MyType : Type2?
+        | ADT String [(String,Expr)] --Type [(Constructor, ConsType)] TODO: allow data MyType : Type2?
         | Inline String --a section of target language code inlined in the source file
         | Comment String
         deriving(Show)
@@ -14,7 +14,7 @@ data Statement--TODO: add file imports
 type Dusty = [Statement]
 
 
-validate :: RefEnv -> Dusty -> E.ErrLineMonad RefEnv
+validate :: RefEnv -> Dusty -> E.ErrLineMonad RefEnv --TODO:what to do about impl args in type signature?
 validate re code = validate' 1 re code where
         validate' :: Int -> RefEnv -> Dusty -> E.ErrLineMonad RefEnv
         validate' l re [] = return re

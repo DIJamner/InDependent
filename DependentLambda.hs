@@ -1,6 +1,7 @@
 module DependentLambda (
         Expr(..),
         Variable(..),
+        Req(..),
         IndexEnv,
         RefEnv,
         inferType,
@@ -18,15 +19,21 @@ import Control.Applicative
 data Expr
         = Var Variable
         | Universe Int
-        | Pi Expr Expr --dependent product (pi _:t.e) We can extend de Bruijn notation to the dependent product type, as given \a:A.b : (Pi)a:A.B, the index is valid in both. TODO: This is true iff lambda terms cannot appear in valid types
-        | Lambda Expr Expr --lambda abstraction (\_:t.e)
+        | Pi Req Expr Expr --dependent product (pi _:t.e) We can extend de Bruijn notation to the dependent product type, as given \a:A.b : (Pi)a:A.B, the index is valid in both.
+        | Lambda Req Expr Expr --lambda abstraction (\_:t.e)
         | Apply Expr Expr --application (a b)
+
+data Req = Impl | Expl deriving (Show, Eq)
 
 instance Show Expr where
         show (Var v) = show v
         show (Universe i) = "Type" ++ (show i)
-        show (Pi t e) = (show t) ++ " -> " ++ (show e)
-        show (Lambda t e) = "\\:(" ++ (show t) ++ ")." ++ (show e)
+        show (Pi r t e) = case r of
+                Impl -> "{" ++ (show t) ++ "} -> " ++ (show e)
+                Expl -> (show t) ++ " -> " ++ (show e)
+        show (Lambda r t e) = case r of
+                Impl -> "\\:{" ++ (show t) ++ "}." ++ (show e)
+                Expl -> "\\:(" ++ (show t) ++ ")." ++ (show e)
         show (Apply a b) = "(" ++ show a ++ " " ++ show b ++ ")"
 
 data Variable
@@ -56,17 +63,17 @@ nInferType re ie e = case e of
                 DeBruijn i -> deBruijnType ie i
                 Ref s -> refType re s
         Universe i -> Right $ Universe (i + 1)
-        Pi t ee -> Universe `fmap` univMax --TODO: need to better understand. Issues currently here.
+        Pi r t ee -> Universe `fmap` univMax
                 where
                         univMax :: E.ErrMonad Int
                         univMax = ((max `fmap` (inferUniverse =<< (inferType re ie t))) 
                                 <*> (inferUniverse =<< (inferType re ((t, Nothing):ie) ee)))
-        Lambda t ee -> Pi t `fmap` (nInferType re ((t, Nothing):ie) ee)
+        Lambda r t ee -> Pi r t `fmap` (nInferType re ((t, Nothing):ie) ee)
         Apply a b -> do
                 at <- nInferType re ie a 
                 bt <- nInferType re ie b
                 case at of
-                        Pi t e -> if exprEq re ie t bt then return $ deBruijnSub 1 b e
+                        Pi r t e -> if exprEq re ie t bt then return $ deBruijnSub 1 b e
                                 else Left $ E.TypeError $ show b ++ " : " 
                                         ++ show bt ++ " not of type " ++ show t
                         _ -> Left $ E.TypeError $ show a ++ 
@@ -83,12 +90,12 @@ normalize :: RefEnv -> IndexEnv -> Expr -> E.ErrMonad Expr
 normalize re ie arg@(Var (DeBruijn i)) = return $ E.catch (\x -> arg) $ resolveDeBruijn ie i
 normalize re ie arg@(Var (Ref s)) = return $ E.catch (\x -> arg) $ resolveRef re s
 normalize re ie arg@(Universe i) = Right arg
-normalize re ie (Pi t e) = Pi `fmap` (normalize re ie t) <*> (normalize re ((t,Nothing):ie) e)
-normalize re ie (Lambda t e) = Lambda `fmap` (normalize re ie t) <*> (normalize re ((t,Nothing):ie) e) 
+normalize re ie (Pi r t e) = (Pi r) `fmap` (normalize re ie t) <*> (normalize re ((t,Nothing):ie) e)
+normalize re ie (Lambda r t e) = (Lambda r) `fmap` (normalize re ie t) <*> (normalize re ((t,Nothing):ie) e) 
 normalize re ie (Apply a b) = join $ (nApply re ie) `fmap` (normalize re ie a) `ap` (normalize re ie b) 
         where
                 nApply :: RefEnv -> IndexEnv -> Expr -> Expr -> E.ErrMonad Expr
-                nApply re ie a@(Lambda t e) b = normalize' =<< btype
+                nApply re ie a@(Lambda r t e) b = normalize' =<< btype
                         where
                                 btype :: E.ErrMonad Expr
                                 btype = inferType re ie b
@@ -104,8 +111,8 @@ deBruijnSub :: Int -> Expr -> Expr -> Expr
 deBruijnSub i e arg@(Var (DeBruijn ii)) = if i == ii then e else arg
 deBruijnSub i e arg@(Var (Ref _)) = arg
 deBruijnSub i e arg@(Universe _) = arg
-deBruijnSub i e (Pi t e2) = Pi (deBruijnSub i e t) (deBruijnSub (i+1) e e2)--TODO: does this work?
-deBruijnSub i e (Lambda t e2) = Lambda (deBruijnSub i e t) (deBruijnSub (i+1) e e2)
+deBruijnSub i e (Pi r t e2) = Pi r (deBruijnSub i e t) (deBruijnSub (i+1) e e2)
+deBruijnSub i e (Lambda r t e2) = Lambda r (deBruijnSub i e t) (deBruijnSub (i+1) e e2)
 deBruijnSub i e (Apply a b) = Apply (deBruijnSub i e a) (deBruijnSub i e b)
 
 --replaces all instances of named reference with a given expression
@@ -113,8 +120,8 @@ refSub :: String -> Expr -> Expr -> Expr
 refSub s e arg@(Var (DeBruijn _)) = arg
 refSub s e arg@(Var (Ref r)) = if s == r then e else arg
 refSub s e arg@(Universe _) = arg
-refSub s e (Pi t e2) = Pi (refSub s e t) (refSub s e e2)
-refSub s e (Lambda t e2) = Lambda (refSub s e t) (refSub s e e2)
+refSub s e (Pi r t e2) = Pi r (refSub s e t) (refSub s e e2)
+refSub s e (Lambda r t e2) = Lambda r (refSub s e t) (refSub s e e2)
 refSub s e (Apply a b) = Apply (refSub s e a) (refSub s e b)
 
 resolveDeBruijn :: IndexEnv -> Int -> E.ErrMonad Expr --TODO: combine with below for tuple output?
@@ -152,9 +159,9 @@ exprEq re ie a b = case nExprEq `fmap` (normalize re ie a) <*> (normalize re ie 
 nExprEq :: Expr -> Expr -> Bool --assumes both terms have been normalized
 nExprEq (Var a) (Var b) = a == b 
 nExprEq (Apply a1 b1) (Apply a2 b2) = nExprEq a1 a2 && nExprEq b1 b2
-nExprEq (Lambda t1 e1) (Lambda t2 e2) = nExprEq t1 t2 && nExprEq e1 e2
+nExprEq (Lambda r1 t1 e1) (Lambda r2 t2 e2) = nExprEq t1 t2 && nExprEq e1 e2 --TODO: two expressions are considered equal regardless of implicit or explicit arguments. This could change.
 nExprEq (Universe i1) (Universe i2) = i1 == i2
-nExprEq (Pi t1 e1) (Pi t2 e2) = nExprEq t1 t2 && nExprEq e1 e2
+nExprEq (Pi r1 t1 e1) (Pi r2 t2 e2) = nExprEq t1 t2 && nExprEq e1 e2
 nExprEq a b = False
 
 
@@ -166,8 +173,8 @@ abstract exprKind s t e = exprKind t $ abstract' 1 s e where
         abstract' i s arg@(Var (Ref ss)) = if s == ss then Var $ DeBruijn i else arg
         abstract' i s arg@(Var (DeBruijn ii)) = arg
         abstract' i s arg@(Universe ii) = arg
-        abstract' i s (Pi t e) = Pi (abstract' i s t) (abstract' (i + 1) s e)
-        abstract' i s (Lambda t e) = Lambda (abstract' i s t) (abstract' (i + 1) s e)
+        abstract' i s (Pi r t e) = Pi r (abstract' i s t) (abstract' (i + 1) s e)
+        abstract' i s (Lambda r t e) = Lambda r (abstract' i s t) (abstract' (i + 1) s e)
         abstract' i s (Apply a b) = Apply (abstract' i s a) (abstract' i s b)
 
 

@@ -42,10 +42,11 @@ processDusty i args out = case args !! i of
                         Left err -> Left (sourceLine $ errorPos err, E.ParsecError err)
                         Right res -> return res
                 let valid = (validate []) =<< dcode
-                let jscode = dustyToJS `fmap` dcode
                 case valid of
                         Left err -> print err
-                        Right _ -> out ((JS.toText 0) `fmap` jscode)
+                        Right re -> do
+                                let jscode = (dustyToJS re) `fmap` dcode
+                                out ((JS.toText 0) `fmap` jscode)
                 
 writeCode :: String -> E.ErrLineMonad String -> IO ()
 writeCode f code = case code of
