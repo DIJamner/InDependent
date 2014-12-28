@@ -32,11 +32,15 @@ typeableExpr = try universe
         <?> "typeable expression"
 
 var :: Parser String
-var = (do 
-                a <- letter
-                b <- many $ alphaNum
-                return $ a:b)
-        <|> (many1 $ oneOf "+-*/&|=<>")
+var = do 
+        a <- letter
+        b <- many $ (alphaNum <|> char '|')
+        return $ a:(replace '|' '.' b)
+        
+--utility function
+replace :: Eq a => a -> a -> [a] -> [a]
+replace a b [] = []
+replace a b (c:cs) = if c == a then b:(replace a b cs) else c:(replace a b cs)
 
 universe :: Parser Expr
 universe = (string "Type") >> (fmap Universe $ lInt)
