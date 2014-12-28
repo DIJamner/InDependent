@@ -56,7 +56,7 @@ nInferType re ie e = case e of
                 DeBruijn i -> deBruijnType ie i
                 Ref s -> refType re s
         Universe i -> Right $ Universe (i + 1)
-        Pi t ee -> Universe `fmap` univMax --TODO: need to better understand
+        Pi t ee -> Universe `fmap` univMax --TODO: need to better understand. Issues currently here.
                 where
                         univMax :: E.ErrMonad Int
                         univMax = ((max `fmap` (inferUniverse t)) <*> (inferUniverse ee))
@@ -119,12 +119,15 @@ refSub s e (Apply a b) = Apply (refSub s e a) (refSub s e b)
 resolveDeBruijn :: IndexEnv -> Int -> E.ErrMonad Expr --TODO: combine with below for tuple output?
 resolveDeBruijn ie i = if length ie >= i then case e of 
                 Nothing -> Right $ Var $ DeBruijn i
+                Just (Var (DeBruijn ii)) -> Right $ Var $ DeBruijn (i+ii) 
                 Just v -> Right $ v 
         else Left $ E.FreeVarError $ "Unresolved DeBruijn index " ++ (show i) ++ "."
         where (t, e) = ie !! (i-1) --de Bruijn indices are 1 indexed
 
 deBruijnType :: IndexEnv -> Int -> E.ErrMonad Expr
-deBruijnType ie i = if length ie >= i then return t
+deBruijnType ie i = if length ie >= i then case t of
+                Var (DeBruijn ii) -> return $ Var $ DeBruijn (i+ii) 
+                v -> return v 
         else Left $ E.FreeVarError $ "Unresolved DeBruijn index " ++ (show i) ++ "."
         where (t, e) = ie !! (i-1) --de Bruijn indices are 1 indexed
 
@@ -152,6 +155,7 @@ nExprEq (Lambda t1 e1) (Lambda t2 e2) = nExprEq t1 t2 && nExprEq e1 e2
 nExprEq (Universe i1) (Universe i2) = i1 == i2
 nExprEq (Pi t1 e1) (Pi t2 e2) = nExprEq t1 t2 && nExprEq e1 e2
 nExprEq a b = False
+
 
 --performs either a lambda or pi abstraction of a variable over an expression
 abstract :: (Expr -> Expr -> Expr) -> String -> Expr -> Expr -> Expr
