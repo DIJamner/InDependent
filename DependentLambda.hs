@@ -67,7 +67,7 @@ nInferType re ie e = case e of
                 where
                         univMax :: E.ErrMonad Int
                         univMax = ((max `fmap` (inferUniverse =<< (inferType re ie t))) 
-                                <*> (inferUniverse =<< (inferType re ((t, Nothing):ie) ee)))
+                                <*> (inferUniverse =<< (nInferType re ((t, Nothing):ie) ee)))
         Lambda r t ee -> Pi r t `fmap` (nInferType re ((t, Nothing):ie) ee)
         Apply a b -> do
                 at <- nInferType re ie a 
