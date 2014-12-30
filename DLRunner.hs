@@ -10,15 +10,20 @@ import System.Environment
 import Text.Parsec
 
 main :: IO ()
-main = do
+main = do 
         args <- getArgs
         case args !! 0 of
+                "expr" -> processExpr args
+                _ -> processDusty 0 args print
+
+
+processExpr :: [String] -> IO ()
+processExpr args = case args !! 1 of
                 "parse" -> do
-                        putStrLn $ "Parsing " ++ (args !! 1)
-                        print $ parse expr "lambdapi" $ args !! 1
-                "normalize" -> print $ (normalize [] []) `fmap` (parse expr "lambdapi" $ args !! 1)
-                "infertype" -> print $ (inferType [] []) `fmap` (parse expr "lambdapi" $ args !! 1)
-                "dusty" -> processDusty 1 args print
+                        putStrLn $ "Parsing " ++ (args !! 2)
+                        print $ parse expr "lambdapi" $ args !! 2
+                "normalize" -> print $ (normalize [] []) `fmap` (parse expr "lambdapi" $ args !! 2)
+                "infertype" -> print $ (inferType [] []) `fmap` (parse expr "lambdapi" $ args !! 2)
                 
 processDusty :: Int -> [String] -> (E.ErrLineMonad String -> IO ()) -> IO ()
 processDusty i args out = case args !! i of
