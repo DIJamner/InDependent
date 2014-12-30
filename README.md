@@ -47,7 +47,7 @@ Finally, since everything has a type, types have their own types! If Int is a re
 
 -----------
 
-a native statement tells the compiler that an expression of a given type exists in the compiled environment, allowing for JavaScript interoperability.
+A native statement tells the compiler that an expression of a given type exists in the compiled environment, allowing for JavaScript interoperability.
 
     native a : <expr>
 
