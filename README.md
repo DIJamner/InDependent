@@ -1,4 +1,4 @@
-#InDependent (name subject to change)
+#InDependent
 
 
 This project seeks to develop a gradual, dependently typed language as a proof-of-concept for the usefulness of such a system. In its present state, it achieves this through the interweaving of the dependently typed lambda calculus with JavaScript, a common dynamically typed language.
@@ -19,10 +19,33 @@ bindings in InDependent are immutable, so variables may only be bound once.
 
     a = <expr>
 
-To explicitly specify the type of a term, you can include a type signature directly above it The compiler will check to see if the type of the expression matches the signature and throw an exception if it does not
+To explicitly specify the type of a term, you can include a type signature directly above it. The compiler will check to see if the type of the expression matches the signature and throw an exception if it does not.
 
     b : <expr>
     b = <expr>
+
+------------
+###Expressions
+
+Expressions are described using the dependently typed lambda calculus. To those unfamiliar with the name this may sound complex, but the syntax is surprisingly simple.
+
+Anonymous functions are written as \x : T.y where x is the function parameter, T is the type of x, and y is the return value. A function that takes any Int and returns it can be written like so:
+
+    \a : Int.a
+
+Function application is written by separating the function and its arguments with spaces and surrounding them with parenthesis like so.
+
+    (f a)
+
+For functions with multiple parameters, we can still use a single set of parenthesis.
+
+    (f a b)
+
+Function types are written using arrow syntax, so A -> B is the type of a function from an A to a B. Here's the catch: sometimes, the *value* of the parameter can appear in the *type* of the result. When we want to use the value of the parameter in the return type, we can simply specify it like so: (a:A) -> B. This is what makes the language dependently typed.
+
+Finally, since everything has a type, types have their own types! If Int is a regular type, then its type is written Type1. Why the 1? Well, Type1 also has to have a type, and its type is Type2 and so on.
+
+-----------
 
 a native statement tells the compiler that an expression of a given type exists in the compiled environment, allowing for JavaScript interoperability.
 
