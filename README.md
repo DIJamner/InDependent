@@ -1,4 +1,4 @@
-#Dusty (name likely to change)
+#InDependent (name subject to change)
 
 
 This project seeks to develop a gradual, dependently typed language as a proof-of-concept for the usefulness of such a system. In its present state, it achieves this through the interweaving of the dependently typed lambda calculus with JavaScript, a common dynamically typed language.
@@ -10,12 +10,12 @@ Note that this project is very much a work in progress and may contain bugs and 
 ##Syntax:
 
 
-Legal statements in Dusty are of one of the following forms:
+Legal statements in InDependent are of one of the following forms:
 
     --comments are any line that starts with two dashes (--)
 
 To bind the value <expr> to a, we use the following.
-bindings in Dusty are immutable, so variables may only be bound once.
+bindings in InDependent are immutable, so variables may only be bound once.
 
     a = <expr>
 
@@ -72,7 +72,7 @@ Exactly one of the following arguments must be passed to the compiler each time 
 
 Example:
 
-    ./dusty -i MyFile.dusty -o gen/MyFile.js compile
+    ./inde -i MyFile.inde -o gen/MyFile.js compile
 
 ##Installation
 
@@ -80,7 +80,7 @@ To build the compiler from source, you need the Haskell platform. If you have no
 
 Once you have Haskell, run the following command to build from source:
 
-    ghc -o dusty DLRunner.hs
+    ghc -o inde DLRunner.hs
 
 ###Troubleshooting
 

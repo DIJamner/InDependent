@@ -1,4 +1,4 @@
-module Dusty where
+module InDependent where
 
 import DependentLambda
 import qualified Errors as E
@@ -11,12 +11,12 @@ data Statement--TODO: add file imports
         | Comment String
         deriving(Show)
         
-type Dusty = [Statement]
+type InDependent = [Statement]
 
 
-validate :: RefEnv -> Dusty -> E.ErrLineMonad RefEnv --TODO:what to do about impl args in type signature?
+validate :: RefEnv -> InDependent -> E.ErrLineMonad RefEnv --TODO:what to do about impl args in type signature?
 validate re code = validate' 1 re code where
-        validate' :: Int -> RefEnv -> Dusty -> E.ErrLineMonad RefEnv
+        validate' :: Int -> RefEnv -> InDependent -> E.ErrLineMonad RefEnv
         validate' l re [] = return re
         validate' l re (s:ss) = do
                 newre <- case validateS re s of
@@ -26,7 +26,8 @@ validate re code = validate' 1 re code where
 
 --attempts to validate a given statement in the current environment
 --and returns a new environment if successful
-validateS :: RefEnv -> Statement -> E.ErrMonad RefEnv
+validateS :: RefEnv -> Statement -> E.ErrMonad RefEnv --TODO: ADT constructors should return the appropriate data type
+--TODO: variables should only be defined once in a given scope. SHould two definitions throw an error?
 validateS re (Assign s mt e) = case mt of
         Nothing -> do
                 ne <- normalize re [] e

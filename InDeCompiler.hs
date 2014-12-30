@@ -1,8 +1,8 @@
 import DependentLambda
 import DependentLambdaParser
-import DustyParser
-import Dusty
-import DustyToJS
+import InDependentParser
+import InDependent
+import InDependentToJS
 import qualified Errors as E
 import qualified JSWriter as JS
 
@@ -14,7 +14,7 @@ main = do
         args <- getArgs
         case args !! 0 of
                 "expr" -> processExpr args
-                _ -> processDusty 0 args print
+                _ -> processInDependent 0 args print
 
 
 processExpr :: [String] -> IO ()
@@ -25,14 +25,14 @@ processExpr args = case args !! 1 of
                 "normalize" -> print $ (normalize [] []) `fmap` (parse expr "lambdapi" $ args !! 2)
                 "infertype" -> print $ (inferType [] []) `fmap` (parse expr "lambdapi" $ args !! 2)
                 
-processDusty :: Int -> [String] -> (E.ErrLineMonad String -> IO ()) -> IO ()
-processDusty i args out = case args !! i of
+processInDependent :: Int -> [String] -> (E.ErrLineMonad String -> IO ()) -> IO ()
+processInDependent i args out = case args !! i of
         "-i" -> do
                 src <- readFile (args !! (i+1))
-                processDusty (i+2) (args ++ [src]) out
-        "-o" -> processDusty (i+2) args (writeCode (args !! (i+1)))
+                processInDependent (i+2) (args ++ [src]) out
+        "-o" -> processInDependent (i+2) args (writeCode (args !! (i+1)))
         "validate" -> do
-                let code = case parse dusty "dusty" (args !! (i + 1)) of
+                let code = case parse inde "inde" (args !! (i + 1)) of
                         Left err -> Left (sourceLine $ errorPos err, E.ParsecError err)
                         Right res -> return res
                 let valid = (validate []) =<< code
@@ -42,17 +42,17 @@ processDusty i args out = case args !! i of
                 case valid of
                      Left err -> print err
                      Right _ ->  putStrLn "Valid!"
-        "print" -> print $ parse dusty "dusty" (args !! (i + 1))
+        "print" -> print $ parse inde "inde" (args !! (i + 1))
         
         "compile" -> do
-                let dcode = case parse dusty "dusty" (args !! (i + 1)) of
+                let dcode = case parse inde "inde" (args !! (i + 1)) of
                         Left err -> Left (sourceLine $ errorPos err, E.ParsecError err)
                         Right res -> return res
                 let valid = (validate []) =<< dcode
                 case valid of
                         Left err -> print err
                         Right re -> do
-                                let jscode = (dustyToJS re) `fmap` dcode
+                                let jscode = (indeToJS re) `fmap` dcode
                                 out ((JS.toText 0) `fmap` jscode)
                 
 writeCode :: String -> E.ErrLineMonad String -> IO ()

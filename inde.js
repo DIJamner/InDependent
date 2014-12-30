@@ -1,6 +1,6 @@
-//web pages that use Dusty should load this script and Ramda (http://ramdajs.com/)
+//web pages that use InDependent should load this script and Ramda (http://ramdajs.com/)
 
-Object.prototype.isDusty = false
+Object.prototype.isInDependent = false
 
 function Universe(i){
     //TODO: are these needed?
@@ -9,7 +9,7 @@ function Universe(i){
     // this.__defineGetter__("dustytype", function(){
     //     return Universe(i+1)
     // });
-    this.isDusty = true
+    this.isInDependent = true
     return this
 }
 
@@ -20,7 +20,7 @@ function PiType(at, rt){
     // res.__defineGetter__("dustytype", function(){
     //     return Math.max(at.dustytype[1], rt.dustytype[1])
     // });
-    this.isDusty = true
+    this.isInDependent = true
     return this
 }
 
@@ -28,7 +28,7 @@ function PiType(at, rt){
 var eq = R.curry(function(a,b){//TODO: may be able to remove type args if shown to be unnecessary
                     //if not, use implicit arg notation in code
     if(a.constructor === b.constructor){
-        if(a.isDusty && b.isDusty){
+        if(a.isInDependent && b.isInDependent){
             for(var i = 0; i <= a[0]; i++){
                 if(!eq(a[i], b[i])){
                      return false;
@@ -36,7 +36,7 @@ var eq = R.curry(function(a,b){//TODO: may be able to remove type args if shown 
             }
             return true;
         }else{
-            return a === b;//primitives and non-Dusty objects
+            return a === b;//primitives and non-InDependent objects
         }
     }
     
@@ -46,5 +46,5 @@ var eq = R.curry(function(a,b){//TODO: may be able to remove type args if shown 
 
 //tests whether obj is an instance of the given ADT constructor
 var matchADT = R.curry(function(obj, adt){
-    return obj.isDusty && adt.isDusty && obj.constructor === adt.constructor
+    return obj.isInDependent && adt.isInDependent && obj.constructor === adt.constructor
 });

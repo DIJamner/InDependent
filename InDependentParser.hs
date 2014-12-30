@@ -1,14 +1,14 @@
-module DustyParser where
+module InDependentParser where
 
 import DependentLambdaParser
 import DependentLambda
-import Dusty
+import InDependent
 
 import Text.Parsec
 import Text.Parsec.String (Parser)
 
-dusty :: Parser Dusty
-dusty = many1 (do
+inde :: Parser InDependent
+inde = many1 (do
         s <- statement
         char '\n'
         whitespace

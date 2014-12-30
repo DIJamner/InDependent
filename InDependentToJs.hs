@@ -1,13 +1,13 @@
-module DustyToJS where
+module InDependentToJS where
 
-import Dusty
+import InDependent
 import DependentLambda
 import qualified JSWriter as JS
 import Errors as E
 
-dustyToJS :: RefEnv -> Dusty -> JS.JavaScript
-dustyToJS re [] = []
-dustyToJS re (s:ss) = (statementToJS re s):(dustyToJS re ss) 
+indeToJS :: RefEnv -> InDependent -> JS.JavaScript
+indeToJS re [] = []
+indeToJS re (s:ss) = (statementToJS re s):(indeToJS re ss) 
 
 statementToJS :: RefEnv -> Statement -> JS.Statement --TODO: need refenv? errmonad?
 statementToJS re (Assign s _ e) = JS.NewVar s $ lambdaToJS re [] e
@@ -51,7 +51,7 @@ genConsObjJS s (c, t) = JS.Function ("$ADT" ++ c) args (funcBody $ len)
                 getArgStrings i _ = (i-1,[])
                 funcBody :: Int -> JS.JavaScript
                 funcBody i = (JS.Assignment ("this[0]") $ JS.LInt len):
-                        (JS.Assignment ("this.isDusty") $ JS.Variable "true"):
+                        (JS.Assignment ("this.isInDependent") $ JS.Variable "true"):
                         (map fieldAssign $ countFrom i)
                 fieldAssign :: Int -> JS.Statement
                 fieldAssign i = JS.Assignment ("this[" ++ show i ++"]") $ JS.Variable $
