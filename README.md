@@ -1,5 +1,5 @@
 #Dusty (name likely to change)
------------
+
 
 This project seeks to develop a gradual, dependently typed language as a proof-of-concept for the usefulness of such a system. In its present state, it achieves this through the interweaving of the dependently typed lambda calculus with JavaScript, a common dynamically typed language.
 
@@ -8,7 +8,7 @@ Many parts of the internal architechture were informed by Adrej Bauer's post her
 Note that this project is very much a work in progress and may contain bugs and be changed at any time.
 
 ##Syntax:
----------
+
 
 Legal statements in Dusty are of one of the following forms:
 
@@ -52,7 +52,7 @@ Finally, arbitrary target-language code (for now JavaScript) can be inlined as a
 As shown above, ADT constructors and variables can also be used directly in JavaScript.
 
 ##Using the Compiler
-------------
+
 The compiler has a number of different flags and settings.
 
 ###Required
@@ -75,7 +75,7 @@ Example:
     ./dusty -i MyFile.dusty -o gen/MyFile.js compile
 
 ##Installation
------------
+
 To build the compiler from source, you need the Haskell platform. If you have not installed Haskell, go here: https://www.haskell.org/platform/
 
 Once you have Haskell, run the following command to build from source:
@@ -83,7 +83,7 @@ Once you have Haskell, run the following command to build from source:
     ghc -o dusty DLRunner.hs
 
 ###Troubleshooting
-----------
+
 If it complains that you do not have Parsec installed, make sure you have cabal, then run the following:
 
     cabal install parsec
