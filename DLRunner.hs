@@ -39,7 +39,9 @@ processDusty i args out = case args !! i of
                 putStrLn "Validate: "
                 print code
                 putStrLn "\nResult: "
-                print valid
+                case valid of
+                     Left err -> print err
+                     Right _ ->  putStrLn "Valid!"
         "print" -> print $ parse dusty "dusty" (args !! (i + 1))
         
         "compile" -> do
