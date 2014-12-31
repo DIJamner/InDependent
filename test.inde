@@ -1,19 +1,53 @@
-native Int : Type1
-native add : Int->Int->Int
-a = \x:Int->Int.x
-b = \y:Int->Int.\z:Int.(y z)
-c : Int->Int
-c = (b add)
---This is a comment
+--TODO: allow newlines at top of file
 data Nat {
     Zero : Nat
     Suc : Nat -> Nat
-
 }
+native Int : Type1
+native R|add : Int -> Int -> Int
+native eq : {t:Type1} -> t -> t -> Bool
+native Bool : Type1
+native true : Bool
+native false : Bool
+native natToInt : Nat -> Int
+native intToNat : Int -> Nat
+
+--BoolF = (t:Type1) -> t -> t -> t
+--trueF : BoolF
+--trueF = \t:Type1.\a:t.\b:t.a
+--falseF : BoolF
+--falseF = \t:Type1.\a:t.\b:t.b
+
+--boolFToBool : BoolF -> Bool
+--boolFToBool = \b:BoolF.(b true false)
+
+a = \x:Int->Int.x
+b = \y:Int->Int.\z:Int.(y z)
+c : Int -> Int -> Nat
+c = \x:Int.\y:Int.(intToNat (R|add x y))
+--This is a comment
 d = (Suc Zero)
+e = (eq Bool true true)
+
+
+
+--TODO: can things be in arbitrary order now?
+--TODO: need type checker impl of eq(t,a,b) using exprEq re ie. Requires type checker prims
+--TODO: numbers
+--TODO: line counter counts statements, not lines (issue for data, whitespace)
+--TODO: some way of accessing fields of ADTs in Dusty
+--TODO: imports
+--TODO: use ramda r.curry for all function defs automatically
+--TODO: simplify functional JS (e.g. funcs of mult. args, etc)
+
 {*
 var jsvar = a(1)
 var useDusty = Suc(Zero())
+var intToNat = function(i){
+    if(i === 0) return Zero()
+    else return Suc(intToNat(i-1))
+}
+
 
 *}
 
