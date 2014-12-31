@@ -70,7 +70,7 @@ lambdaToJS re ie (Universe i) = JS.FunctionCall (JS.Variable "Universe") [(JS.LI
 lambdaToJS re ie (Pi r at rt) = JS.FunctionCall (JS.Variable "PiType") 
         [(lambdaToJS re ie at),(lambdaToJS re ie rt)]
 lambdaToJS re ie (Lambda r t e) = let
-                argname = "$d" ++ (show $ length ie)
+                argname = "$d" ++ (show $ length ie + 1)
                 bodyJS = lambdaToJS re ((t, Just $ Var $ Ref argname):ie) e
         in case r of
                 Impl -> bodyJS

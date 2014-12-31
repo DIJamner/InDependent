@@ -1,5 +1,4 @@
 module Errors where
-import Text.Parsec.String (Parser)
 import Text.Parsec
 --TODO: use packaging
 
