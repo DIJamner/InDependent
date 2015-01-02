@@ -19,34 +19,32 @@ type LinedInDependent = [E.Lined Statement]
 validate :: RefEnv -> LinedInDependent -> E.ErrLineMonad RefEnv 
 validate re [] = return re
 validate re ((sp, ep, s):ss) = do
-        newre <- case validateS re s of
-                Left err -> Left (sp, ep, err)
-                Right res -> return res
+        newre <- validateS re sp ep s
         validate newre ss
 
 --attempts to validate a given statement in the current environment
 --and returns a new environment if successful
-validateS :: RefEnv -> Statement -> E.ErrMonad RefEnv --TODO: ADT constructors should return the appropriate data type
+validateS :: RefEnv -> Int -> Int -> Statement -> E.ErrLineMonad RefEnv --TODO: ADT constructors should return the appropriate data type
 --TODO: variables should only be defined once in a given scope. SHould two definitions throw an error?
-validateS re (Assign s mt e) = case mt of
+validateS re sp ep (Assign s mt e) = case mt of
         Nothing -> do
-                ne <- normalize re [] e
-                t <- nInferType re [] ne
+                ne <- E.errWithLines sp ep $ normalize re [] e
+                t <- E.errWithLines sp ep $ nInferType re [] ne
                 return $ (s, t, Just ne):re
         Just at -> do
-                ne <- normalize re [] e
-                nat <- normalize re [] at
-                t <- nInferType re [] ne
+                ne <- E.errWithLines sp ep $ normalize re [] e
+                nat <- E.errWithLines sp ep $  normalize re [] at
+                t <- E.errWithLines sp ep $ nInferType re [] ne
                 if nExprEq t nat then return $ (s, t, Just ne):re
-                        else fail $ s ++ " should be of type " ++ show nat ++
-                                " but is of type " ++ show t
-validateS re (Native s t) = do
-        nt <- normalize re [] t
+                        else Left $ (sp, ep, E.TypeError $ s ++ " should be of type " ++ show nat ++
+                               " but is of type " ++ show t)
+validateS re sp ep (Native s t) = do
+        nt <- E.errWithLines sp ep $ normalize re [] t
         return $ (s, nt, Nothing):re
-validateS re (ADT s []) = return $ (s, Universe 1, Nothing):re
-validateS re (ADT s ((c, t):cs)) = do
-         nt <- normalize re [] t
-         newre <- validateS re (ADT s cs)
+validateS re sp ep (ADT s []) = return $ (s, Universe 1, Nothing):re
+validateS re sp ep (ADT s ((c, t):cs)) = do
+         nt <- E.errWithLines sp ep $ normalize re [] t
+         newre <- validateS re sp ep (ADT s cs)
          return $ (c, nt, Nothing):newre
-validateS re (Inline s) = return re
-validateS re (Comment s) = return re
+validateS re sp ep (Inline s) = return re
+validateS re sp ep (Comment s) = return re

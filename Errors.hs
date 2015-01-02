@@ -21,3 +21,7 @@ catch :: (b -> a) -> Either b a -> a
 catch f e = case e of
         Left err -> f err
         Right res -> res
+        
+errWithLines :: Int -> Int -> ErrMonad a -> ErrLineMonad a
+errWithLines sp ep (Right res) = Right res
+errWithLines sp ep (Left err) = Left (sp, ep, err)
