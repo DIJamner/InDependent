@@ -5,9 +5,9 @@ import DependentLambda
 import qualified JSWriter as JS
 import Errors as E
 
-indeToJS :: RefEnv -> InDependent -> JS.JavaScript
+indeToJS :: RefEnv -> LinedInDependent -> JS.JavaScript
 indeToJS re [] = []
-indeToJS re (s:ss) = (statementToJS re s):(indeToJS re ss) 
+indeToJS re ((sp, ep, s):ss) = (statementToJS re s):(indeToJS re ss) 
 
 statementToJS :: RefEnv -> Statement -> JS.Statement --TODO: need refenv? errmonad?
 statementToJS re (Assign s _ e) = JS.NewVar s $ lambdaToJS re [] e

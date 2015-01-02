@@ -25,7 +25,7 @@ processExpr args = case args !! 1 of
                 "normalize" -> print $ (normalize [] []) `fmap` (parse expr "lambdapi" $ args !! 2)
                 "infertype" -> print $ (inferType [] []) `fmap` (parse expr "lambdapi" $ args !! 2)
                 
-processInDependent :: Int -> [String] -> (E.ErrLineMonad String -> IO ()) -> IO ()
+processInDependent :: Int -> [String] -> (E.ErrLineMonad String -> IO ()) -> IO () --TODO: redo this function for E.Lined
 processInDependent i args out = case args !! i of
         "-i" -> do
                 src <- readFile (args !! (i+1))
@@ -33,7 +33,8 @@ processInDependent i args out = case args !! i of
         "-o" -> processInDependent (i+2) args (writeCode (args !! (i+1)))
         "validate" -> do
                 let code = case parse inde "inde" (args !! (i + 1)) of
-                        Left err -> Left (sourceLine $ errorPos err, E.ParsecError err)
+                        Left err -> Left (pos, pos, E.ParsecError err)
+                                where pos = sourceLine $ errorPos err
                         Right res -> return res
                 let valid = (validate []) =<< code
                 putStrLn "Validate: "
@@ -46,7 +47,8 @@ processInDependent i args out = case args !! i of
         
         "compile" -> do
                 let dcode = case parse inde "inde" (args !! (i + 1)) of
-                        Left err -> Left (sourceLine $ errorPos err, E.ParsecError err)
+                        Left err -> Left (pos, pos, E.ParsecError err)
+                                where pos = sourceLine $ errorPos err
                         Right res -> return res
                 let valid = (validate []) =<< dcode
                 case valid of
@@ -57,7 +59,10 @@ processInDependent i args out = case args !! i of
                 
 writeCode :: String -> E.ErrLineMonad String -> IO ()
 writeCode f code = case code of
-        Left (l,err) -> putStrLn $ "Error on line " ++ show l ++ ":" ++ show err
+        Left (sp, ep, err) -> if sp == ep then 
+                        putStrLn $ "Error on line " ++ show sp ++ ":" ++ show err
+                else putStrLn $ "Error between lines " ++ show sp ++ 
+                        "and " ++ show ep ++  ":" ++ show err
         Right res -> do
                 writeFile f res
                 putStrLn $ "Success! File written to " ++ f

@@ -13,7 +13,9 @@ data Error
 
 type ErrMonad = Either Error
 
-type ErrLineMonad = Either (Int, Error)
+type Lined a = (Int, Int, a) --start line, end line, value
+
+type ErrLineMonad = Either (Lined Error)
 
 catch :: (b -> a) -> Either b a -> a
 catch f e = case e of

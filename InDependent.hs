@@ -12,17 +12,17 @@ data Statement--TODO: add file imports
         deriving(Show)
         
 type InDependent = [Statement]
+        
+type LinedInDependent = [E.Lined Statement]
 
 
-validate :: RefEnv -> InDependent -> E.ErrLineMonad RefEnv --TODO:what to do about impl args in type signature?
-validate re code = validate' 1 re code where
-        validate' :: Int -> RefEnv -> InDependent -> E.ErrLineMonad RefEnv
-        validate' l re [] = return re
-        validate' l re (s:ss) = do
-                newre <- case validateS re s of
-                        Left err -> Left (l, err)
-                        Right res -> return res
-                validate' (l+1) newre ss
+validate :: RefEnv -> LinedInDependent -> E.ErrLineMonad RefEnv 
+validate re [] = return re
+validate re ((sp, ep, s):ss) = do
+        newre <- case validateS re s of
+                Left err -> Left (sp, ep, err)
+                Right res -> return res
+        validate newre ss
 
 --attempts to validate a given statement in the current environment
 --and returns a new environment if successful

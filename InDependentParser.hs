@@ -3,24 +3,29 @@ module InDependentParser where
 import DependentLambdaParser
 import DependentLambda
 import InDependent
+import qualified Errors as E
 
 import Text.Parsec
 import Text.Parsec.String (Parser)
 
-inde :: Parser InDependent
+inde :: Parser LinedInDependent
 inde = many1 (do
         s <- statement
         char '\n'
         whitespace
         return s)
 
-statement :: Parser Statement
-statement = try native 
-        <|> try adt
-        <|> comment
-        <|> inline
-        <|> assign
-        <?> "statement"
+statement :: Parser (E.Lined Statement)
+statement = do
+        spos <- sourceLine `fmap` getPosition
+        stmnt <- try native 
+                <|> try adt
+                <|> comment
+                <|> inline
+                <|> assign
+                <?> "statement"
+        fpos <- sourceLine `fmap` getPosition
+        return (spos, fpos, stmnt)
         
 native :: Parser Statement
 native = do
