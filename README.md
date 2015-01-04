@@ -27,7 +27,7 @@ To explicitly specify the type of a term, you can include a type signature direc
 ------------
 ###Expressions
 
-Expressions are described using the dependently typed lambda calculus. To those unfamiliar with the name this may sound complex, but the syntax is surprisingly simple.
+Expressions are described using the dependently typed lambda calculus. To those unfamiliar with the name this may sound complex, but the syntax is surprisingly simple and concise.
 
 Anonymous functions are written as \x : T.y where x is the function parameter, T is the type of x, and y is the return value. A function that takes any Int and returns it can be written like so:
 
@@ -64,7 +64,7 @@ Constructor arguments are determined by their type. An ADT representing a two di
         pt : Int -> Int -> Point
     }
 
-Finally, arbitrary target-language code (for now JavaScript) can be inlined as a statement by surrounding it with the "{*" and "*}" symbols.
+Finally, arbitrary target-language code (for now JavaScript) can be inlined as a statement by surrounding it with the "{\*" and "\*}" symbols.
 
     {*
     var jsVar = pt(1, 2)
@@ -85,7 +85,7 @@ Exactly one of the following arguments must be passed to the compiler each time 
 
 "validate" attempts to validate the input code and prints both the internal representation and any errors that cause it to fail validation.
 
-"compile" Parses and validates the input code then, if it is valid, outputs compiled JavaScript.
+"compile" parses and validates the input code then, if it is valid, outputs compiled JavaScript.
 
 ###Optional
 
