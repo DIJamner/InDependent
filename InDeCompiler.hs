@@ -56,6 +56,7 @@ processInDependent i args out = case args !! i of
                         Right re -> do
                                 let jscode = (indeToJS re) `fmap` dcode
                                 out ((JS.toText 0) `fmap` jscode)
+        a -> print $ "Compiler does not recognize flag: " ++ show a
                 
 writeCode :: String -> E.ErrLineMonad String -> IO ()
 writeCode f code = case code of
