@@ -3,7 +3,7 @@
 
 This project seeks to develop a gradual, dependently typed language as a proof-of-concept for the usefulness of such a system. In its present state, it achieves this through the interweaving of the dependently typed lambda calculus with JavaScript, a common dynamically typed language.
 
-Many parts of the internal architechture were informed by Adrej Bauer's post here: http://math.andrej.com/2012/11/08/how-to-implement-dependent-type-theory-i/.
+Many parts of the internal architecture were informed by Adrej Bauer's post here: http://math.andrej.com/2012/11/08/how-to-implement-dependent-type-theory-i/.
 
 Note that this project is very much a work in progress and may contain bugs and be changed at any time.
 
