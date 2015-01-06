@@ -38,7 +38,7 @@ adt :: Parser Statement
 adt = do
         string "data"
         spaces
-        (v, t) <- typeAnnotation
+        (v, t) <- adtAnnotation
         spaces
         char '{'
         cons <- many1 $ try (do
@@ -49,6 +49,16 @@ adt = do
         whitespace
         char '}'
         return $ ADT v t cons
+        
+adtAnnotation :: Parser (String, Expr)
+adtAnnotation = do
+        v <- var
+        spaces
+        e <- option (Universe 1) $ do
+                char ':'
+                spaces
+                expr
+        return (v, e)
 
 comment :: Parser Statement
 comment = do

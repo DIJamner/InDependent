@@ -51,9 +51,9 @@ A native statement tells the compiler that an expression of a given type exists 
 
     native a : <expr>
 
-A data statement creates an abstract data type with the given name and exactly the given constructors. 
+A data statement creates an abstract data type with the given and exactly the given constructors. The type of the data statement may be specified. If it is not, then the ADT type is assumed to be of type Type1.
 
-    data MyDataType {
+    data MyDataType : TypeType {
         cons1 : <expr>
         ...
     }    
