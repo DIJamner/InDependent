@@ -44,7 +44,7 @@ genConsObjJS re typeExpr (c, t) len args ats = JS.Function ("$ADT" ++ c) args (f
         where
                 funcBody :: JS.JavaScript
                 funcBody = (JS.Assignment ("this[0]") $ JS.LInt len):
-                        (JS.Assignment ("this.inDeType") $ jsTypeExpr ):
+                        (JS.Assignment ("this.indeType") $ jsTypeExpr ): --TODO: should be return type... need to encode product types in functions
                         (map fieldAssign $ countFrom len)
                         
                 fieldAssign :: Int -> JS.Statement
@@ -62,7 +62,12 @@ genConsObjJS re typeExpr (c, t) len args ats = JS.Function ("$ADT" ++ c) args (f
                         Pi r at rt -> Pi r at $ subPi (i+1) $ deBruijnSub 1 (exprArgs !! i) rt
                         _ -> expr
                 
-                jsTypeExpr = lambdaToJS re [] $ subPi 0 t
+                jsTypeExpr = lambdaToJS re [] $ retVal $ subPi 0 t
+                
+                retVal :: Expr -> Expr
+                retVal (Pi r at rt) = retVal rt
+                retVal arg = arg
+                
 getArgStrings :: Int -> Expr -> (Int,[String],[Expr])
 getArgStrings i (Pi r at rt) = let 
                 (l, as, ts) = (getArgStrings (i+1) rt) 
