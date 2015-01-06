@@ -1,8 +1,10 @@
 --TODO: allow newlines at top of file
-data Nat {
+data Nat : Type1 {
     Zero : Nat
     Suc : Nat -> Nat
 }
+
+
 native Int : Type1
 native R|add : Int -> Int -> Int
 native eq : {t:Type1} -> t -> t -> Bool
@@ -12,14 +14,13 @@ native false : Bool
 native natToInt : Nat -> Int
 native intToNat : Int -> Nat
 
---BoolF = (t:Type1) -> t -> t -> t
---trueF : BoolF
---trueF = \t:Type1.\a:t.\b:t.a
---falseF : BoolF
---falseF = \t:Type1.\a:t.\b:t.b
+native add : Nat -> Nat -> Nat
+--TODO: implement in InDependent
 
---boolFToBool : BoolF -> Bool
---boolFToBool = \b:BoolF.(b true false)
+data Vec : Type1 -> Nat -> Type1 {
+    empty : (t:Type1) -> (Vec t Zero)
+    cons : (t:Type1) -> (m:Nat) -> (n:Nat) -> (Vec t m) -> (Vec t n) -> (Vec t (add m n))
+}
 
 a = \x:Int->Int.x
 b = \y:Int->Int.\z:Int.(y z)
@@ -30,8 +31,6 @@ d = (Suc Zero)
 e = (eq Bool true true)
 
 
-
---TODO: can things be in arbitrary order now?
 --TODO: need type checker impl of eq(t,a,b) using exprEq re ie. Requires type checker prims
 --TODO: numbers
 --TODO: line counter counts statements, not lines (issue for data, whitespace)
@@ -50,4 +49,10 @@ var intToNat = function(i){
 
 
 *}
+
+native NT : Type1
+native myNT : NT
+id = \t:{Type1}.\a:t.a
+res = (id NT)
+
 

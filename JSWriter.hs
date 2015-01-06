@@ -45,10 +45,7 @@ stmntToText n (Comment s) = indent n ++ "/*" ++ s ++ "*/\n"
 stmntToText n (CodeBlock s) = s ++ "\n"
 stmntToText n (StmntList []) = ""
 stmntToText n (StmntList (s:ss)) = (stmntToText n s) ++ (stmntToText n (StmntList ss))
-stmntToText n (Function s [] js) = indent n ++ "function " ++ s ++ "(){\n" ++ toText (n+1) js ++ indent n ++ "}\n"
-stmntToText n (Function s (arg:[]) js) = indent n ++ "function " ++ s ++ "(" ++ arg ++ "){\n" ++ toText (n+1) js ++ indent n ++ "}\n" 
-stmntToText n (Function s (arg:args) js) = indent n ++ "function " ++ s ++ "(" ++ (foldr (\a b -> a ++ "," ++ b) arg args) ++ "){\n" ++ toText (n+1) js ++ indent n ++ "}\n" --TODO: make sure foldr is right, add js
-stmntToText n s = ""--TODO: should eventually remove
+stmntToText n (Function s args js) = indent n ++ "function " ++ s ++ (funcArgs (\a->a) args) ++ "{\n" ++ toText (n+1) js ++ indent n ++ "}\n"
 
 indent :: Int -> String
 indent 0 = ""

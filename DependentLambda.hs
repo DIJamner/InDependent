@@ -10,7 +10,8 @@ module DependentLambda (
         exprEq,
         nExprEq,
         resolveDeBruijn,
-        abstract
+        abstract,
+        deBruijnSub
 ) where
 import qualified Errors as E
 import Control.Monad

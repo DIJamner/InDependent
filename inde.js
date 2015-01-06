@@ -1,34 +1,36 @@
 //web pages that use InDependent should load this script and Ramda (http://ramdajs.com/)
 
-Object.prototype.isInDependent = false
-
 function Universe(i){
-    //TODO: are these needed?
-    this[0] = "1"
-    this[1] = i
-    // this.__defineGetter__("dustytype", function(){
-    //     return Universe(i+1)
-    // });
-    this.isInDependent = true
-    return this
+    return new $PRIMUniverse(i)
 }
 
-function PiType(at, rt){
+function $PRIMUniverse(i){
+    this[0] = "1"
+    this[1] = i
+    this.__defineGetter__("inDeType", function(){ //TODO: best name for type property?
+        return Universe(i+1)
+    });
+}
+
+function PiType(at,rt){
+    return new $PRIMPiType(at, rt)
+}
+
+function $PRIMPiType(at, rt){
     this[0] = "2"
     this[1] = at
     this[2] = rt
-    // res.__defineGetter__("dustytype", function(){
-    //     return Math.max(at.dustytype[1], rt.dustytype[1])
-    // });
-    this.isInDependent = true
-    return this
+    res.__defineGetter__("inDeType", function(){
+        return Math.max(at.InDeType[1], rt.InDeType[1])
+    });
 }
 
 //tests whether a and b are structurally equivalent
-var eq = R.curry(function(a,b){//TODO: may be able to remove type args if shown to be unnecessary
+var eq = R.curry(function(a,b){
                     //if not, use implicit arg notation in code
     if(a.constructor === b.constructor){
-        if(a.isInDependent && b.isInDependent){
+        if(a.inDeType !== undefined && b.inDeType !== undefined){
+            if(!eq(a.inDeType, b.inDeType)) return false;
             for(var i = 0; i <= a[0]; i++){
                 if(!eq(a[i], b[i])){
                      return false;
@@ -36,7 +38,7 @@ var eq = R.curry(function(a,b){//TODO: may be able to remove type args if shown 
             }
             return true;
         }else{
-            return a === b;//primitives and non-InDependent objects
+            return a === b;//primitives and non-InDependent objects rely on JS equality
         }
     }
     

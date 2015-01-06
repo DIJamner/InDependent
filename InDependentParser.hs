@@ -38,7 +38,7 @@ adt :: Parser Statement
 adt = do
         string "data"
         spaces
-        v <- var --TODO: change to typeAnnotation? for MyType : Type2
+        (v, t) <- typeAnnotation
         spaces
         char '{'
         cons <- many1 $ try (do
@@ -48,7 +48,7 @@ adt = do
                 return c)
         whitespace
         char '}'
-        return $ ADT v cons
+        return $ ADT v t cons
 
 comment :: Parser Statement
 comment = do
