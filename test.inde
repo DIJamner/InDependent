@@ -1,5 +1,5 @@
 --TODO: allow newlines at top of file
-data Nat : Type1 {
+data Nat {
     Zero : Nat
     Suc : Nat -> Nat
 }
@@ -41,9 +41,9 @@ e = (eq Bool true true)
 
 {*
 var jsvar = a(1)
-var useDusty = Suc(Zero())
+var useDusty = Suc(Zero)
 var intToNat = function(i){
-    if(i === 0) return Zero()
+    if(i === 0) return Zero
     else return Suc(intToNat(i-1))
 }
 

@@ -20,7 +20,7 @@ function $PRIMPiType(at, rt){
     this[0] = "2"
     this[1] = at
     this[2] = rt
-    res.__defineGetter__("inDeType", function(){
+    this.__defineGetter__("inDeType", function(){
         return Math.max(at.InDeType[1], rt.InDeType[1])
     });
 }
