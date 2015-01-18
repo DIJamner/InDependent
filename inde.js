@@ -26,11 +26,11 @@ function $PRIMPiType(at, rt){
 }
 
 //tests whether a and b are structurally equivalent
-var eq = R.curry(function(a,b){
+var eq = R.curry(function(a,b){ //TODO: BIG: how to tell equality of functions
                     //if not, use implicit arg notation in code
     if(a.constructor === b.constructor){
-        if(a.inDeType !== undefined && b.inDeType !== undefined){
-            if(!eq(a.inDeType, b.inDeType)) return false;
+        if(a.indeType !== undefined && b.indeType !== undefined){
+            if(!eq(a.indeType, b.indeType)) return false;
             for(var i = 0; i <= a[0]; i++){
                 if(!eq(a[i], b[i])){
                      return false;
