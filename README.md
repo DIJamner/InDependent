@@ -5,7 +5,7 @@ This project seeks to develop a gradual, dependently typed language as a proof-o
 
 Many parts of the internal architecture were informed by Adrej Bauer's post here: http://math.andrej.com/2012/11/08/how-to-implement-dependent-type-theory-i/.
 
-Note that this project is very much a work in progress and may contain bugs and be changed at any time.
+Note that this project is very much a work in progress and may contain bugs or change at any time.
 
 ##Syntax:
 
@@ -14,7 +14,7 @@ Valid statements in InDependent are of one of the following forms:
 
     --comments are any line that starts with two dashes (--)
 
-To bind the value <expr> to a, we use the following.
+To bind the value <expr> to a, we use the following statement.
 Bindings in InDependent are immutable, so variables may only be bound once.
 
     a = <expr>
@@ -103,7 +103,7 @@ To build the compiler from source, you need the Haskell platform. If you have no
 
 Once you have Haskell, run the following command to build from source:
 
-    ghc -o inde DLRunner.hs
+    ghc -o inde InDeCompiler.hs
 
 ###Troubleshooting
 
