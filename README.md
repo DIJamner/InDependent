@@ -10,12 +10,12 @@ Note that this project is very much a work in progress and may contain bugs and 
 ##Syntax:
 
 
-Legal statements in InDependent are of one of the following forms:
+Valid statements in InDependent are of one of the following forms:
 
     --comments are any line that starts with two dashes (--)
 
 To bind the value <expr> to a, we use the following.
-bindings in InDependent are immutable, so variables may only be bound once.
+Bindings in InDependent are immutable, so variables may only be bound once.
 
     a = <expr>
 
