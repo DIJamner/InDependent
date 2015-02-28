@@ -9,7 +9,7 @@ import Text.Parsec
 import Text.Parsec.String (Parser)
 
 inde :: Parser LinedInDependent
-inde = many1 (do
+inde = whitespace >> many1 (do
         s <- statement
         char '\n'
         whitespace
