@@ -50,20 +50,6 @@ processInDependent i args input out = case args !! i of
         "compile" -> (compile [] [] input out)>>return()  --TODO: must add first file to path
         a -> print $ "Compiler does not recognize flag: " ++ show a
 
-compileFromArgs :: Int -> [String] -> (E.ErrLineMonad String -> IO ()) -> IO ()
-compileFromArgs i args out = do
-        let dcode = case parse inde "inde" (args !! (i + 1)) of
-                Left err -> Left (pos, pos, E.ParsecError err)
-                        where pos = sourceLine $ errorPos err
-                Right res -> return res
-        let valid = (validate []) =<< dcode
-        case valid of
-                Left err -> print err
-                Right re -> do
-                        let jscode = (indeToJS re) `fmap` dcode
-                        out ((JS.toText 0) `fmap` jscode)
-
-
 compile :: RefEnv -> [String] -> IO String -> (E.ErrLineMonad String -> IO ()) -> IO RefEnv
 compile re past input out = do
         src <- input

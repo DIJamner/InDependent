@@ -38,9 +38,8 @@ instance Show Expr where
         show (Apply a b) = "(" ++ show a ++ " " ++ show b ++ ")"
 
 data Variable
-         = DeBruijn Int {-references bound variables from lambdas indexed by structural proximity.
-                         in this program, de Bruijn indices start at 0 rather than 1 
-                         to align with list indices-}
+         = DeBruijn Int --references bound variables from lambdas indexed by structural proximity.
+                         
          | Ref String --references predefined terms bound to names in the environment
          deriving (Eq)
          
