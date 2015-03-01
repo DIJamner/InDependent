@@ -12,6 +12,9 @@ import System.Environment
 import Text.Parsec
 import Data.List
 
+type BinOut = E.ErrLineMonad String -> IO ()
+type SrcIn = IO String
+
 main :: IO ()
 main = do 
         args <- getArgs
@@ -28,7 +31,7 @@ processExpr args = case args !! 1 of
                 "normalize" -> print $ (normalize [] []) `fmap` (parse expr "lambdapi" $ args !! 2)
                 "infertype" -> print $ (inferType [] []) `fmap` (parse expr "lambdapi" $ args !! 2)
                 
-processInDependent :: Int -> [String] -> IO String -> (E.ErrLineMonad String -> IO ()) -> IO () --TODO: redo this function for E.Lined
+processInDependent :: Int -> [String] -> SrcIn -> BinOut -> IO () --TODO: redo this function for E.Lined
 processInDependent i args input out = case args !! i of
         "-i" -> do
                 processInDependent (i+2) args (readFile (args !! (i+1))) out
@@ -50,8 +53,8 @@ processInDependent i args input out = case args !! i of
         "compile" -> (compile [] [] input out)>>return()  --TODO: must add first file to path
         a -> print $ "Compiler does not recognize flag: " ++ show a
 
-compile :: RefEnv -> [String] -> IO String -> (E.ErrLineMonad String -> IO ()) -> IO RefEnv
-compile re past input out = do
+compile :: RefEnv -> [String] -> SrcIn -> BinOut -> IO RefEnv
+compile re past input out = do --TODO: does not create directories when necessary
         src <- input
         let parsedata = case parse IP.inde "inde" src of
                 Left err -> Left (pos, pos, E.ParsecError err)
@@ -71,16 +74,20 @@ compile re past input out = do
                         out ((JS.toText 0) `fmap` jscode)
                         return re
 
-compileImports :: RefEnv -> [String] -> [String] -> (E.ErrLineMonad String -> IO ()) -> IO RefEnv --TODO: past does not carry on correctly(will cause duplicate compilations but no if. loops)
+compileImports :: RefEnv -> [String] -> [String] -> BinOut -> IO RefEnv --TODO: past does not carry on correctly(will cause duplicate compilations but no if. loops)
 compileImports re past imports out = foldl (\mre path -> do{
         re <- mre;
         compile re (path:past) (readFile path) (writeCode $ changeExt path)
         }) (return re) imports
         
 changeExt :: String -> String--TODO: make work for other file types
-changeExt path = ((groupBy (\a b -> if (a == '.') || (b == '.') then False else True) path) !! 0) ++ ".js"
+changeExt path = ((split '.' path) !! 0) ++ ".js"
 
-writeCode :: String -> E.ErrLineMonad String -> IO ()
+split :: Char -> String -> [String]
+split c s = groupBy (\a b -> if (a == c) || (b == c) then False else True) s
+
+
+writeCode :: String -> BinOut
 writeCode f code = case code of
         Left (sp, ep, err) -> if sp == ep then 
                         putStrLn $ "Error on line " ++ show sp ++ ":" ++ show err
