@@ -8,11 +8,16 @@ import qualified Errors as E
 
 import Text.Parsec
 import Text.Parsec.String (Parser)
---TODO: use language lib in parsec
+--TODO: use language lib in parsec?
 
 inde :: Parser ([String], LinedInDependent)
 inde = do
-        imps <- try $ many importFile
+        whitespace
+        imps <- many $ (do
+                i <- importFile
+                char '\n'
+                whitespace
+                return i)
         body <- many1 (do
                 s <- statement
                 char '\n'
@@ -25,8 +30,6 @@ importFile = do
         string "import"
         spaces
         f <- filename
-        spaces
-        char '\n'
         return f
                 
 filename :: Parser String
@@ -34,10 +37,10 @@ filename = do
         base <- many1 alphaNum
         ext <- optionMaybe (do
                 char '.'
-                n <- many1 alphaNum
+                n <- filename
                 return n)
         let ret = case ext of
-                Nothing -> base
+                Nothing -> base ++ ".inde"
                 Just n -> base ++ "/" ++ n
         return ret
         

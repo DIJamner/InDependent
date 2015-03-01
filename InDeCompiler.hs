@@ -10,13 +10,14 @@ import qualified JSWriter as JS
 
 import System.Environment
 import Text.Parsec
+import Data.List
 
 main :: IO ()
 main = do 
         args <- getArgs
         case args !! 0 of
                 "expr" -> processExpr args
-                _ -> processInDependent 0 args print
+                _ -> processInDependent 0 args (return (args !! ((length args) - 1))) print
 
 
 processExpr :: [String] -> IO ()
@@ -27,12 +28,11 @@ processExpr args = case args !! 1 of
                 "normalize" -> print $ (normalize [] []) `fmap` (parse expr "lambdapi" $ args !! 2)
                 "infertype" -> print $ (inferType [] []) `fmap` (parse expr "lambdapi" $ args !! 2)
                 
-processInDependent :: Int -> [String] -> (E.ErrLineMonad String -> IO ()) -> IO () --TODO: redo this function for E.Lined
-processInDependent i args out = case args !! i of
+processInDependent :: Int -> [String] -> IO String -> (E.ErrLineMonad String -> IO ()) -> IO () --TODO: redo this function for E.Lined
+processInDependent i args input out = case args !! i of
         "-i" -> do
-                src <- readFile (args !! (i+1))
-                processInDependent (i+2) (args ++ [src]) out
-        "-o" -> processInDependent (i+2) args (writeCode (args !! (i+1)))
+                processInDependent (i+2) args (readFile (args !! (i+1))) out
+        "-o" -> processInDependent (i+2) args input (writeCode (args !! (i+1)))
         "validate" -> do
                 let code = case parse inde "inde" (args !! (i + 1)) of
                         Left err -> Left (pos, pos, E.ParsecError err)
@@ -46,8 +46,8 @@ processInDependent i args out = case args !! i of
                      Left err -> print err
                      Right _ ->  putStrLn "Valid!"
         "print" -> print $ parse inde "inde" (args !! (i + 1))
-        
-        "compile" -> compileFromArgs i args out
+         --compileFromArgs i args out
+        "compile" -> (compile [] [] input out)>>return()  --TODO: must add first file to path
         a -> print $ "Compiler does not recognize flag: " ++ show a
 
 compileFromArgs :: Int -> [String] -> (E.ErrLineMonad String -> IO ()) -> IO ()
@@ -63,9 +63,10 @@ compileFromArgs i args out = do
                         let jscode = (indeToJS re) `fmap` dcode
                         out ((JS.toText 0) `fmap` jscode)
 
-compile :: RefEnv -> [String] -> String -> (E.ErrLineMonad String -> IO ()) -> IO RefEnv
-compile re past path out = do
-        src <- readFile path
+
+compile :: RefEnv -> [String] -> IO String -> (E.ErrLineMonad String -> IO ()) -> IO RefEnv
+compile re past input out = do
+        src <- input
         let parsedata = case parse IP.inde "inde" src of
                 Left err -> Left (pos, pos, E.ParsecError err)
                         where pos = sourceLine $ errorPos err
@@ -87,9 +88,12 @@ compile re past path out = do
 compileImports :: RefEnv -> [String] -> [String] -> (E.ErrLineMonad String -> IO ()) -> IO RefEnv --TODO: past does not carry on correctly(will cause duplicate compilations but no if. loops)
 compileImports re past imports out = foldl (\mre path -> do{
         re <- mre;
-        compile re (path:past) path out
+        compile re (path:past) (readFile path) (writeCode $ changeExt path)
         }) (return re) imports
         
+changeExt :: String -> String--TODO: make work for other file types
+changeExt path = ((groupBy (\a b -> if (a == '.') || (b == '.') then False else True) path) !! 0) ++ ".js"
+
 writeCode :: String -> E.ErrLineMonad String -> IO ()
 writeCode f code = case code of
         Left (sp, ep, err) -> if sp == ep then 

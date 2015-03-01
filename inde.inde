@@ -1,5 +1,6 @@
+native eq : {t:Type1} -> t -> t -> Bool
+{*
 //web pages that use InDependent should load this script and Ramda (http://ramdajs.com/)
-
 function Universe(i){
     return new $PRIMUniverse(i)
 }
@@ -26,8 +27,7 @@ function $PRIMPiType(at, rt){
 }
 
 //tests whether a and b are structurally equivalent
-var eq = R.curry(function(a,b){ //TODO: BIG: how to tell equality of functions
-                    //if not, use implicit arg notation in code
+var eq = R.curry(function(a,b){ //TODO: BIG: how to make sure args are not functions (or in other words, make sure they ARE comparable via equals... Haskell-style instances come to mind)
     if(a.constructor === b.constructor){
         if(a.indeType !== undefined && b.indeType !== undefined){
             if(!eq(a.indeType, b.indeType)) return false;
@@ -50,3 +50,4 @@ var eq = R.curry(function(a,b){ //TODO: BIG: how to tell equality of functions
 var matchADT = R.curry(function(obj, adt){
     return obj.isInDependent && adt.isInDependent && obj.constructor === adt.constructor
 });
+*}
