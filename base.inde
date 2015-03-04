@@ -1,3 +1,17 @@
+data Nat {
+    Zero : Nat
+    Suc : Nat -> Nat
+}
+
+data Vec : Type1 -> Nat -> Type1 {
+    Empty : (t:Type1) -> Vec t Zero
+    Cons : (t:Type1) -> (n:Nat) -> t -> Vec t n -> Vec t (n+1)
+}
+
+native Int : Type1
+native Bool : Type1
+native true : Bool
+native false : Bool
 native eq : {t:Type1} -> t -> t -> Bool
 {*
 //web pages that use InDependent should load this script and Ramda (http://ramdajs.com/)
@@ -30,7 +44,6 @@ function $PRIMPiType(at, rt){
 var eq = R.curry(function(a,b){ //TODO: BIG: how to make sure args are not functions (or in other words, make sure they ARE comparable via equals... Haskell-style instances come to mind)
     if(a.constructor === b.constructor){
         if(a.indeType !== undefined && b.indeType !== undefined){
-            if(!eq(a.indeType, b.indeType)) return false;
             for(var i = 0; i <= a[0]; i++){
                 if(!eq(a[i], b[i])){
                      return false;
